@@ -1,38 +1,47 @@
-# LA Tennis Court Finder — Build 12
+# LA Tennis Court Finder — Build 13
 
-This is a clean static GitHub Pages court finder. Court detection, calibration,
-layout recognition, detector progress bars, and manual tuning have been
-removed.
+This fixes the two Build 12 regressions.
 
-## Main features
+## Slideshow fix
 
-- Dark tennis-themed interface
-- Full-color Esri satellite map
-- Background address mapping for all 165 facilities
-- Search, area, category, lighting, court-count, distance, and nearby filters
-- Facility side drawer that preserves map space
-- Prominent Directions and Court information buttons
-- Seven-day hourly weather planner using Open-Meteo
-- Temperature, apparent temperature, rain chance, precipitation, wind, gusts,
-  humidity, UV, cloud cover, visibility, sunrise, sunset, and suggested playing
-  windows
-- Short Finding tennis courts launch slideshow
-- Google Maps link for live or typical activity when Google displays it
+All five aerial images are embedded directly inside `index.html` as compressed
+JPEG data. No `assets` folder is required, and the slideshow cannot break
+because of an omitted folder or relative path.
 
-## Google activity limitation
+The loading screen visibly says:
 
-Google Maps Platform's official Place data fields do not expose Popular Times
-or live busyness. This build therefore links directly to the court in Google
-Maps, where Google may display live and typical activity. It does not scrape
-or invent activity data.
+```text
+LA court map · Build 13
+```
+
+## Mapping fix
+
+Build 13 restores compatibility with every coordinate-cache key used by the
+last working mapper:
+
+- `la-tennis-fast-v1`
+- `la-tennis-exact-v1`, `v2`, and `v3`
+- `la-tennis-runtime-point-v1`
+- `precise-v3`
+- `geo`
+- Build 12's `la-tennis-coordinate-v3`
+
+Previously mapped facilities therefore reappear immediately in browsers that
+used the working version. New mappings are saved in both the new and legacy
+formats.
+
+The proven ArcGIS address matcher and two-worker background mapping queue have
+also been restored. New dots appear without a page reload.
 
 ## Deploy
 
-Upload every file and the `assets` folder to the repository root and commit to
-`main`.
+Upload these four visible files, plus the hidden `.nojekyll`, to the repository
+root:
 
-GitHub Pages:
+- `index.html`
+- `courts.csv`
+- `CNAME`
+- `README.md`
+- `.nojekyll`
 
-- Source: Deploy from a branch
-- Branch: main
-- Folder: / (root)
+No image folder is needed.
