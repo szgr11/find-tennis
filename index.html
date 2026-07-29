@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v19-reliable-show-map">
+<meta name="application-build" content="weather-courtfinder-v21-hires-focus">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA + OC Tennis Court Finder</title>
 
@@ -1493,7 +1493,7 @@ select,
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 19</div>
+      <div class="launch-kicker">LA court map · Build 21</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and tennis centers across Los Angeles and Orange County.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
@@ -2111,8 +2111,11 @@ function createMap(){
   L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
-      maxZoom:19,
-      maxNativeZoom:17,
+      maxZoom:20,
+      maxNativeZoom:20,
+      detectRetina:true,
+      updateWhenZooming:false,
+      keepBuffer:4,
       crossOrigin:true,
       attribution:"Tiles &copy; Esri"
     }
@@ -2650,6 +2653,8 @@ function focusImageryUrl(bounds,pixelSize){
       imageSR:"3857",
       size:`${pixelSize},${pixelSize}`,
       format:"jpg",
+      compressionQuality:"95",
+      dpi:"192",
       transparent:"false",
       f:"image"
     })
@@ -2712,14 +2717,16 @@ function loadHighResolutionFocus(c,latlng){
     focusImageryOverlay=null;
   }
 
+  // Keep the export tightly framed around the facility so the court
+  // surface uses substantially more source pixels than the normal tile view.
   const radiusMeters=
     window.innerWidth<=560
-      ?150
-      :185;
+      ?105
+      :125;
   const pixelSize=
     window.devicePixelRatio>=1.5
-      ?1800
-      :1500;
+      ?2048
+      :1800;
   const bounds=focusBoundsAround(
     latlng,
     radiusMeters
@@ -2777,7 +2784,7 @@ function verifiedLatLng(c){
   if(!hasPoint(c))return null;
   const lat=Number(c.lat);
   const lng=Number(c.lng);
-  if(!validCourtPoint(lat,lng))return null;
+  if(!validPoint(lat,lng))return null;
   return L.latLng(lat,lng);
 }
 function waitForMapLayout(delay=0){
@@ -2793,7 +2800,7 @@ async function focusCourtMarker(c,openDetails=false){
   const latlng=verifiedLatLng(c);
   if(!latlng){
     showToast(
-      "This facility still needs a verified map location."
+      "This facility still needs a map location."
     );
     return false;
   }
@@ -2808,10 +2815,13 @@ async function focusCourtMarker(c,openDetails=false){
 
   clearMapFocusEffect();
   clearHighResolutionFocus();
+  map.stop();
 
-  // Wait until the sidebar/drawer transition has completed. Leaflet otherwise
-  // calculates the center against the old map size and the move can appear to
-  // do nothing, especially from the right-hand facility drawer.
+  // Use native high-resolution imagery at close zoom instead of enlarging
+  // lower-zoom tiles. Center immediately, then repeat after panel transitions.
+  map.invalidateSize({pan:false});
+  map.setView(latlng,19,{animate:false});
+
   await waitForMapLayout(
     drawerWasOpen&&!openDetails
       ?240
@@ -2823,47 +2833,10 @@ async function focusCourtMarker(c,openDetails=false){
     debounceMoveend:false
   });
   map.stop();
+  map.setView(latlng,19,{animate:false});
 
-  // First move visibly toward the selected pin, then enforce the exact close
-  // view after the animation so clustering or a layout change cannot override it.
-  map.flyTo(
-    latlng,
-    18.5,
-    {
-      animate:true,
-      duration:.55,
-      easeLinearity:.22,
-      noMoveStart:false
-    }
-  );
-
-  await new Promise(resolve=>{
-    let settled=false;
-    const finish=()=>{
-      if(settled)return;
-      settled=true;
-      map.off("moveend",finish);
-      resolve();
-    };
-    map.once("moveend",finish);
-    window.setTimeout(finish,900);
-  });
-
-  map.invalidateSize({pan:false});
-  map.setView(
-    latlng,
-    19,
-    {animate:false}
-  );
-
-  showMapFocusEffect(
-    c,
-    latlng
-  );
-  loadHighResolutionFocus(
-    c,
-    latlng
-  );
+  showMapFocusEffect(c,latlng);
+  loadHighResolutionFocus(c,latlng);
 
   if(openDetails){
     openDrawer(c);
@@ -2871,6 +2844,7 @@ async function focusCourtMarker(c,openDetails=false){
 
   return true;
 }
+
 function openDrawer(c){
   selectedCourt=c;
   const drawer=document.getElementById("drawer");

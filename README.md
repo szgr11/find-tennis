@@ -1,15 +1,22 @@
-# LA + Orange County Tennis Court Finder — Build 19
+# LA + Orange County Tennis Court Finder — Build 21
 
-## Reliable Show on map
+## High-resolution court focus
 
-Both **Show on map** buttons now use the same delegated click handler.
+Build 21 improves image quality after **Show on map** zooms to a selected facility.
 
-- The left result-card button remains functional after the results list is re-rendered.
-- The right facility-drawer button closes the drawer before Leaflet recalculates the map size.
-- The map flies to the selected court and then locks the exact center at zoom 19.
-- The selected court receives the existing focus pulse and detailed satellite overlay.
-- A failed map action now restores the button instead of leaving it stuck on **Opening map...**.
+- Removed the old native-zoom-17 cap that forced Leaflet to stretch blurry satellite tiles.
+- The basemap now requests native ArcGIS imagery through zoom 20 and uses retina tiles on high-density displays.
+- Selected facilities now focus at zoom 19.
+- The detailed satellite export is framed more tightly around the facility and requests an 1800–2048 pixel image at 95% JPEG quality.
+- The normal satellite tiles remain available if the detailed export cannot load.
+- The Build 20 Show on map repair remains intact for both the left results list and right facility drawer.
 
 ## Deploy
 
-Replace the existing root `index.html` with the Build 19 file. The included `courts.csv` is unchanged from the uploaded dataset.
+Replace the repository root files with:
+
+- `index.html`
+- `courts.csv`
+- `README.md`
+
+Confirm the loading screen says `Build 21`.
