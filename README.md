@@ -1,39 +1,15 @@
-# LA + Orange County Tennis Court Finder — Build 18
+# LA + Orange County Tennis Court Finder — Build 19
 
-## Direct Show on map
+## Reliable Show on map
 
-**Show on map** no longer waits for a marker-cluster callback. It now:
+Both **Show on map** buttons now use the same delegated click handler.
 
-1. closes the list and facility drawer;
-2. calls Leaflet `setView` directly;
-3. centers the selected facility at zoom 19;
-4. briefly highlights the facility;
-5. requests a 1500-1800 pixel ArcGIS satellite export around the court.
-
-Standard satellite tiles remain visible if the detailed export is unavailable.
-
-## Orange County expansion
-
-Added 28 official Orange County facilities across Anaheim, Brea,
-Buena Park, Fountain Valley, Laguna Niguel, Irvine, Huntington Beach, Costa
-Mesa, Newport Beach, Fullerton, Tustin, and Mission Viejo.
-
-The combined dataset now contains 193 facilities.
-
-## View controls
-
-- **Fit to view** fits all currently filtered mapped facilities.
-- **Reset** clears filters, nearby radius, selected facility, and detailed
-  imagery, then fits the combined LA and Orange County map.
+- The left result-card button remains functional after the results list is re-rendered.
+- The right facility-drawer button closes the drawer before Leaflet recalculates the map size.
+- The map flies to the selected court and then locks the exact center at zoom 19.
+- The selected court receives the existing focus pulse and detailed satellite overlay.
+- A failed map action now restores the button instead of leaving it stuck on **Opening map...**.
 
 ## Deploy
 
-Replace the repository root with:
-
-- `index.html`
-- `courts.csv`
-- `CNAME`
-- `.nojekyll`
-- `README.md`
-
-Confirm the loading screen says `Build 18`.
+Replace the existing root `index.html` with the Build 19 file. The included `courts.csv` is unchanged from the uploaded dataset.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v18-direct-focus-oc">
+<meta name="application-build" content="weather-courtfinder-v19-reliable-show-map">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA + OC Tennis Court Finder</title>
 
@@ -1493,7 +1493,7 @@ select,
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 18</div>
+      <div class="launch-kicker">LA court map · Build 19</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and tennis centers across Los Angeles and Orange County.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
@@ -2274,23 +2274,8 @@ function renderList(filtered){
     </article>`;
   }).join("");
 
-  list.querySelectorAll("[data-show]").forEach(button=>{
-    button.addEventListener("click",async ()=>{
-      const c=COURTS.find(item=>item.id===button.dataset.show);
-      if(!c)return;
-      const original=button.textContent;
-      button.disabled=true;
-      button.textContent=hasPoint(c)?"Opening map...":"Locating...";
-      const located=await revealCourt(c);
-      button.disabled=false;
-      button.textContent=original;
-      if(!located)return;
-      closeMobileSidebar();
-      if(window.innerWidth<=760){
-        document.getElementById("sidebar").classList.remove("open");
-      }
-    });
-  });
+  // Show-on-map clicks are handled once through delegated events in
+  // wireControls(). This remains stable even when renderAll() rebuilds the list.
 }
 function renderStatus(filtered){
   const mapped=COURTS.filter(hasPoint).length;
@@ -2417,7 +2402,52 @@ async function revealCourt(c){
   }
 
   renderAll();
-  return focusCourtMarker(c,false);
+  return await focusCourtMarker(c,false);
+}
+
+async function handleShowOnMapClick(event){
+  const button=event.target.closest(
+    "[data-show],[data-drawer-show]"
+  );
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const courtId=
+    button.dataset.show||
+    button.dataset.drawerShow;
+  const c=COURTS.find(
+    item=>item.id===courtId
+  );
+  if(!c||button.dataset.mapBusy==="true")return;
+
+  const original=button.textContent;
+  button.dataset.mapBusy="true";
+  button.disabled=true;
+  button.textContent=hasPoint(c)
+    ?"Opening map..."
+    :"Locating...";
+
+  try{
+    const located=await revealCourt(c);
+    if(!located)return;
+    showToast(`Centered on ${c.name}.`);
+  }catch(error){
+    console.error(
+      "Show on map failed",
+      error
+    );
+    showToast(
+      "The map could not open this court. Please try again."
+    );
+  }finally{
+    if(button.isConnected){
+      button.disabled=false;
+      button.textContent=original;
+      delete button.dataset.mapBusy;
+    }
+  }
 }
 
 /* Drawer and satellite preview */
@@ -2750,7 +2780,16 @@ function verifiedLatLng(c){
   if(!validCourtPoint(lat,lng))return null;
   return L.latLng(lat,lng);
 }
-function focusCourtMarker(c,openDetails=false){
+function waitForMapLayout(delay=0){
+  return new Promise(resolve=>{
+    window.setTimeout(()=>{
+      window.requestAnimationFrame(()=>{
+        window.requestAnimationFrame(resolve);
+      });
+    },delay);
+  });
+}
+async function focusCourtMarker(c,openDetails=false){
   const latlng=verifiedLatLng(c);
   if(!latlng){
     showToast(
@@ -2759,49 +2798,76 @@ function focusCourtMarker(c,openDetails=false){
     return false;
   }
 
+  const drawerWasOpen=
+    !document.getElementById("drawer").hidden;
+
   if(!openDetails){
     closeDrawer();
     closeMobileSidebar();
   }
 
+  clearMapFocusEffect();
   clearHighResolutionFocus();
-  map.invalidateSize({pan:false});
 
-  // Direct movement: no marker-cluster callback is involved.
+  // Wait until the sidebar/drawer transition has completed. Leaflet otherwise
+  // calculates the center against the old map size and the move can appear to
+  // do nothing, especially from the right-hand facility drawer.
+  await waitForMapLayout(
+    drawerWasOpen&&!openDetails
+      ?240
+      :35
+  );
+
+  map.invalidateSize({
+    pan:false,
+    debounceMoveend:false
+  });
   map.stop();
-  map.setView(
+
+  // First move visibly toward the selected pin, then enforce the exact close
+  // view after the animation so clustering or a layout change cannot override it.
+  map.flyTo(
     latlng,
-    19,
+    18.5,
     {
-      animate:false,
-      reset:true
+      animate:true,
+      duration:.55,
+      easeLinearity:.22,
+      noMoveStart:false
     }
   );
 
-  window.setTimeout(()=>{
-    map.invalidateSize({pan:false});
-    map.setView(
-      latlng,
-      19,
-      {
-        animate:false,
-        reset:true
-      }
-    );
+  await new Promise(resolve=>{
+    let settled=false;
+    const finish=()=>{
+      if(settled)return;
+      settled=true;
+      map.off("moveend",finish);
+      resolve();
+    };
+    map.once("moveend",finish);
+    window.setTimeout(finish,900);
+  });
 
-    showMapFocusEffect(
-      c,
-      latlng
-    );
-    loadHighResolutionFocus(
-      c,
-      latlng
-    );
+  map.invalidateSize({pan:false});
+  map.setView(
+    latlng,
+    19,
+    {animate:false}
+  );
 
-    if(openDetails){
-      openDrawer(c);
-    }
-  },40);
+  showMapFocusEffect(
+    c,
+    latlng
+  );
+  loadHighResolutionFocus(
+    c,
+    latlng
+  );
+
+  if(openDetails){
+    openDrawer(c);
+  }
 
   return true;
 }
@@ -2822,16 +2888,6 @@ function openDrawer(c){
       });
     }
   },220);
-
-  const drawerShow=document.querySelector(
-    "[data-drawer-show]"
-  );
-  if(drawerShow){
-    drawerShow.addEventListener(
-      "click",
-      ()=>focusCourtMarker(c,false)
-    );
-  }
 
   loadWeather(c);
 }
@@ -3229,6 +3285,10 @@ function syncCitySelects(source){
   if(mobile.value!==value)mobile.value=value;
 }
 function wireControls(){
+  document.addEventListener(
+    "click",
+    handleShowOnMapClick
+  );
   document.getElementById("search").addEventListener("input",renderAll);
   document.getElementById("city").addEventListener("change",event=>{
     syncCitySelects(event.target);
