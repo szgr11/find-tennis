@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v13">
+<meta name="application-build" content="weather-courtfinder-v14-clean-mapper">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA Tennis Court Finder</title>
 
@@ -465,6 +465,9 @@ button,a{touch-action:manipulation}
   grid-template-columns:1fr 1fr;
   gap:8px;
 }
+.primary-actions .show-map-main{
+  grid-column:1/-1;
+}
 .primary-actions a{
   min-height:44px;
   display:flex;
@@ -476,6 +479,17 @@ button,a{touch-action:manipulation}
   text-decoration:none;
   font-size:10px;
   font-weight:800;
+}
+.show-map-main{
+  min-height:41px;
+  border:1px solid #68625a;
+  background:#38342f;
+  color:#f1ede7;
+  cursor:pointer;
+}
+.show-map-main:hover{
+  border-color:var(--lime);
+  color:var(--lime-soft);
 }
 .directions-main{
   border:1px solid var(--lime);
@@ -724,7 +738,7 @@ button,a{touch-action:manipulation}
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 13</div>
+      <div class="launch-kicker">LA court map · Build 14</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and clubs across Los Angeles while local court details become available.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
@@ -816,15 +830,9 @@ const CATEGORY_LABELS={
   open:"Open play",
   club:"Club"
 };
-const COORD_CACHE_PREFIX="la-tennis-coordinate-v4:";
-const LEGACY_COORD_PREFIXES=[
-  "la-tennis-fast-v1:",
-  "la-tennis-exact-v3:",
-  "la-tennis-exact-v2:",
-  "la-tennis-exact-v1:",
-  "la-tennis-runtime-point-v1:",
-  "la-tennis-coordinate-v3:"
-];
+const COORD_CACHE_PREFIX="la-tennis-coordinate-v14:";
+const COORD_CACHE_MIGRATION_KEY="la-tennis-coordinate-v14-cleaned";
+const addressMappingInFlight=new Map();
 const WEATHER_CACHE_MS=12*60*1000;
 
 let map=null;
@@ -953,7 +961,7 @@ async function runLaunch(){
   slideTimer=setInterval(rotateSlide,850);
   const progressTimer=setInterval(()=>updateLaunchProgress(startedAt),180);
 
-  await new Promise(resolve=>setTimeout(resolve,3200));
+  await new Promise(resolve=>setTimeout(resolve,4300));
 
   clearInterval(progressTimer);
   clearInterval(slideTimer);
@@ -975,16 +983,66 @@ function normalizeAddress(c){
     .replace(/\s+/g," ")
     .trim();
 }
+function extractZip(value){
+  const match=String(value||"").match(/\b(\d{5})(?:-\d{4})?\b/);
+  return match?match[1]:"";
+}
 function validCourtPoint(lat,lng){
   return (
     Number.isFinite(lat)&&
     Number.isFinite(lng)&&
-    lat>32.8&&lat<35&&
-    lng>-119.2&&lng<-117.3
+    lat>=33.45&&lat<=34.55&&
+    lng>=-119.05&&lng<=-117.55
   );
 }
 function coordinateCacheKey(c){
   return COORD_CACHE_PREFIX+c.id;
+}
+function clearCorruptedCoordinateCaches(){
+  try{
+    if(localStorage.getItem(COORD_CACHE_MIGRATION_KEY)==="1"){
+      return;
+    }
+
+    const removablePrefixes=[
+      "la-tennis-fast-v1:",
+      "la-tennis-exact-v1:",
+      "la-tennis-exact-v2:",
+      "la-tennis-exact-v3:",
+      "la-tennis-runtime-point-v1:",
+      "la-tennis-coordinate-v3:",
+      "la-tennis-coordinate-v4:",
+      "precise-v3:",
+      "geo:"
+    ];
+
+    for(let index=localStorage.length-1;index>=0;index--){
+      const key=localStorage.key(index);
+      if(
+        key&&
+        removablePrefixes.some(prefix=>
+          key.startsWith(prefix)
+        )
+      ){
+        localStorage.removeItem(key);
+      }
+    }
+
+    for(let index=sessionStorage.length-1;index>=0;index--){
+      const key=sessionStorage.key(index);
+      if(
+        key&&
+        key.startsWith("la-tennis-runtime-point-v1:")
+      ){
+        sessionStorage.removeItem(key);
+      }
+    }
+
+    localStorage.setItem(
+      COORD_CACHE_MIGRATION_KEY,
+      "1"
+    );
+  }catch(_){}
 }
 function parseSavedCoordinate(raw){
   if(!raw)return null;
@@ -992,55 +1050,47 @@ function parseSavedCoordinate(raw){
     const value=JSON.parse(raw);
     const lat=Number(value.lat);
     const lng=Number(value.lng);
-    if(validCourtPoint(lat,lng)){
-      return {
-        lat,
-        lng,
-        map_accuracy:
-          value.map_accuracy||
-          value.accuracy||
-          "saved address match"
-      };
-    }
-  }catch(_){}
-  return null;
-}
-function legacyCoordinateKeys(c){
-  const address=normalizeAddress(c);
-  return [
-    coordinateCacheKey(c),
-    ...LEGACY_COORD_PREFIXES.map(prefix=>prefix+c.id),
-    `precise-v3:${address}`,
-    `geo:${address}`
-  ];
+    if(!validCourtPoint(lat,lng))return null;
+    return {
+      lat,
+      lng,
+      map_accuracy:
+        value.map_accuracy||
+        "verified saved address match"
+    };
+  }catch(_){
+    return null;
+  }
 }
 function readSavedCoordinate(c){
-  // The last working version stored temporary mappings in sessionStorage.
   try{
-    const runtime=parseSavedCoordinate(
-      sessionStorage.getItem(
-        `la-tennis-runtime-point-v1:${c.id}`
+    return parseSavedCoordinate(
+      localStorage.getItem(
+        coordinateCacheKey(c)
       )
     );
-    if(runtime)return runtime;
-  }catch(_){}
-
-  for(const key of legacyCoordinateKeys(c)){
-    try{
-      const saved=parseSavedCoordinate(
-        localStorage.getItem(key)
-      );
-      if(saved)return saved;
-    }catch(_){}
+  }catch(_){
+    return null;
   }
-  return null;
 }
 function hydrateSavedCoordinates(){
   for(const c of COURTS){
-    if(hasPoint(c)){
-      saveCoordinates(c);
+    const embeddedLat=Number(c.lat);
+    const embeddedLng=Number(c.lng);
+
+    if(
+      Number.isFinite(embeddedLat)&&
+      Number.isFinite(embeddedLng)&&
+      validCourtPoint(embeddedLat,embeddedLng)
+    ){
       continue;
     }
+
+    // Reject any malformed coordinate embedded or inherited from an
+    // earlier release before consulting the clean Build 14 cache.
+    c.lat="";
+    c.lng="";
+
     const saved=readSavedCoordinate(c);
     if(saved){
       c.lat=String(saved.lat);
@@ -1051,43 +1101,34 @@ function hydrateSavedCoordinates(){
 }
 function saveCoordinates(c){
   if(!hasPoint(c))return;
-  const payload=JSON.stringify({
-    lat:Number(c.lat),
-    lng:Number(c.lng),
-    map_accuracy:c.map_accuracy||"saved address match"
-  });
-  const address=normalizeAddress(c);
+  const lat=Number(c.lat);
+  const lng=Number(c.lng);
+  if(!validCourtPoint(lat,lng))return;
 
   try{
-    // New key.
     localStorage.setItem(
       coordinateCacheKey(c),
-      payload
-    );
-
-    // The two keys understood by the last working release.
-    localStorage.setItem(
-      `la-tennis-fast-v1:${c.id}`,
-      payload
-    );
-    localStorage.setItem(
-      `geo:${address}`,
-      payload
-    );
-
-    // Session key makes newly found dots available immediately.
-    sessionStorage.setItem(
-      `la-tennis-runtime-point-v1:${c.id}`,
-      payload
+      JSON.stringify({
+        lat,
+        lng,
+        map_accuracy:
+          c.map_accuracy||
+          "verified address match"
+      })
     );
   }catch(_){}
 }
-
 async function fetchWithTimeout(url,options={},timeout=6000){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeout);
+  const timer=setTimeout(
+    ()=>controller.abort(),
+    timeout
+  );
   try{
-    return await fetch(url,{...options,signal:controller.signal});
+    return await fetch(
+      url,
+      {...options,signal:controller.signal}
+    );
   }finally{
     clearTimeout(timer);
   }
@@ -1103,82 +1144,165 @@ function acceptedGeocodeType(type){
     "POI"
   ]).has(String(type||""));
 }
-async function requestAddressCandidate(query,minimumScore){
-  const response=await fetchWithTimeout(
+function candidateMatchesCourt(c,candidate){
+  const attributes=candidate?.attributes||{};
+  const returnedZip=extractZip(attributes.Postal);
+  const expectedZip=extractZip(c.address);
+  const returnedCity=String(
+    attributes.City||""
+  ).toLowerCase();
+  const expectedCity=String(
+    c.city||""
+  ).toLowerCase();
+
+  if(
+    expectedZip&&
+    returnedZip&&
+    expectedZip!==returnedZip
+  ){
+    return false;
+  }
+
+  // ZIP is the strongest check. Without a ZIP match, require a city
+  // relationship. Los Angeles neighborhoods often geocode as Los Angeles.
+  if(!expectedZip||!returnedZip){
+    const cityMatch=
+      returnedCity.includes(expectedCity)||
+      expectedCity.includes(returnedCity)||
+      (
+        returnedCity==="los angeles"&&
+        [
+          "encino",
+          "hollywood",
+          "north hollywood",
+          "san pedro",
+          "sylmar",
+          "venice",
+          "westchester",
+          "woodland hills"
+        ].includes(expectedCity)
+      );
+    if(!cityMatch)return false;
+  }
+
+  return true;
+}
+async function requestAddressCandidate(
+  c,
+  query,
+  minimumScore
+){
+  const url=
     "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?"+
     new URLSearchParams({
       SingleLine:query,
       sourceCountry:"USA",
-      outFields:"Match_addr,Addr_type,City,Region,Postal",
-      maxLocations:"1",
+      outFields:[
+        "Match_addr",
+        "Addr_type",
+        "City",
+        "Region",
+        "Postal"
+      ].join(","),
+      maxLocations:"5",
       forStorage:"false",
       outSR:"4326",
       f:"json"
-    }),
+    });
+
+  const response=await fetchWithTimeout(
+    url,
     {mode:"cors"},
-    5600
-  ).catch(()=>null);
-
-  if(!response?.ok)return null;
-
-  const data=await response.json().catch(()=>null);
-  const candidate=data?.candidates?.[0];
-  const lat=Number(candidate?.location?.y);
-  const lng=Number(candidate?.location?.x);
-  const score=Number(candidate?.score||0);
-  const type=candidate?.attributes?.Addr_type;
-  const region=String(
-    candidate?.attributes?.Region||""
-  ).toUpperCase();
-
-  if(
-    !candidate||
-    score<minimumScore||
-    !validCourtPoint(lat,lng)||
-    !acceptedGeocodeType(type)||
-    (
-      region&&
-      region!=="CA"&&
-      region!=="CALIFORNIA"
-    )
-  ){
-    return null;
+    5200
+  );
+  if(!response.ok){
+    throw new Error(
+      `Address service returned ${response.status}`
+    );
   }
 
-  return {
-    lat,
-    lng,
-    map_accuracy:
-      `${type||"address"} match · ${Math.round(score)}%`
-  };
-}
-async function geocodeCourt(c){
-  if(hasPoint(c))return c;
+  const data=await response.json();
+  const candidates=Array.isArray(data?.candidates)
+    ?data.candidates
+    :[];
 
+  for(const candidate of candidates){
+    const lat=Number(candidate?.location?.y);
+    const lng=Number(candidate?.location?.x);
+    const score=Number(candidate?.score||0);
+    const type=candidate?.attributes?.Addr_type;
+    const region=String(
+      candidate?.attributes?.Region||""
+    ).toUpperCase();
+
+    if(
+      score<minimumScore||
+      !validCourtPoint(lat,lng)||
+      !acceptedGeocodeType(type)||
+      (
+        region&&
+        region!=="CA"&&
+        region!=="CALIFORNIA"
+      )||
+      !candidateMatchesCourt(c,candidate)
+    ){
+      continue;
+    }
+
+    return {
+      lat,
+      lng,
+      map_accuracy:
+        `${type||"address"} match · ${Math.round(score)}%`
+    };
+  }
+
+  return null;
+}
+async function geocodeCourtAddress(c){
   const exact=await requestAddressCandidate(
+    c,
     String(c.address||"").trim(),
     76
-  );
-  const point=exact||await requestAddressCandidate(
+  ).catch(()=>null);
+  if(exact)return exact;
+
+  return await requestAddressCandidate(
+    c,
     `${c.name}, ${c.city}, California`,
-    88
-  );
-
-  if(!point)return null;
-
-  c.lat=String(point.lat);
-  c.lng=String(point.lng);
-  c.map_accuracy=point.map_accuracy;
-  saveCoordinates(c);
-  return c;
+    90
+  ).catch(()=>null);
 }
 async function ensureCourtPoint(c){
-  if(hasPoint(c))return c;
-  const result=await geocodeCourt(c);
-  if(result){
-    scheduleRender();
+  if(hasPoint(c)){
+    const lat=Number(c.lat);
+    const lng=Number(c.lng);
+    if(validCourtPoint(lat,lng)){
+      return c;
+    }
+    c.lat="";
+    c.lng="";
   }
-  return result;
+
+  if(addressMappingInFlight.has(c.id)){
+    return addressMappingInFlight.get(c.id);
+  }
+
+  const promise=(async ()=>{
+    const point=await geocodeCourtAddress(c);
+    if(!point)return null;
+
+    c.lat=String(point.lat);
+    c.lng=String(point.lng);
+    c.map_accuracy=point.map_accuracy;
+    saveCoordinates(c);
+    return c;
+  })().finally(()=>{
+    addressMappingInFlight.delete(c.id);
+  });
+
+  addressMappingInFlight.set(c.id,promise);
+  return promise;
 }
 async function startBackgroundMapping(){
   if(mappingRunning)return;
@@ -1198,7 +1322,6 @@ async function startBackgroundMapping(){
   let cursor=0;
   const worker=async ()=>{
     while(cursor<queue.length){
-      // Avoid wasting requests while the tab is hidden.
       if(document.hidden){
         await new Promise(resolve=>{
           const resume=()=>{
@@ -1217,17 +1340,22 @@ async function startBackgroundMapping(){
       }
 
       const c=queue[cursor++];
-      const result=await geocodeCourt(c).catch(()=>null);
+      const mapped=await ensureCourtPoint(c);
       mappingDone++;
-      if(result)mappingFound++;
+      if(mapped)mappingFound++;
 
-      // Newly resolved coordinates get markers without a page reload.
       scheduleRender();
-      await new Promise(resolve=>setTimeout(resolve,210));
+      await new Promise(resolve=>
+        setTimeout(resolve,210)
+      );
     }
   };
 
-  await Promise.all([worker(),worker()]);
+  await Promise.all([
+    worker(),
+    worker()
+  ]);
+
   mappingRunning=false;
   renderAll();
 
@@ -1248,7 +1376,7 @@ function createMap(){
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     {
       maxZoom:19,
-      maxNativeZoom:19,
+      maxNativeZoom:17,
       crossOrigin:true,
       attribution:"Tiles &copy; Esri"
     }
@@ -1384,14 +1512,10 @@ function renderList(filtered){
       const original=button.textContent;
       button.disabled=true;
       button.textContent=hasPoint(c)?"Opening map...":"Locating...";
-      const located=await ensureCourtPoint(c);
+      const located=await revealCourt(c);
       button.disabled=false;
       button.textContent=original;
-      if(!located){
-        showToast("This address could not be placed automatically.");
-        return;
-      }
-      revealCourt(c);
+      if(!located)return;
       if(window.innerWidth<=760){
         document.getElementById("sidebar").classList.remove("open");
       }
@@ -1415,18 +1539,17 @@ function renderAll(){
   rebuildMap(filtered);
   renderStatus(filtered);
 }
-function revealCourt(c){
-  const marker=markerFor(c);
-  if(!marker)return;
-  const open=()=>{
-    map.setView(marker.getLatLng(),18,{animate:false});
-    openDrawer(c);
-  };
-  if(typeof cluster.zoomToShowLayer==="function"){
-    cluster.zoomToShowLayer(marker,open);
-  }else{
-    open();
+async function revealCourt(c){
+  const mapped=await ensureCourtPoint(c);
+  if(!mapped||!verifiedLatLng(c)){
+    showToast(
+      "This facility could not be matched to a verified map location. Directions remain available."
+    );
+    return false;
   }
+
+  renderAll();
+  return focusCourtMarker(c,true);
 }
 
 /* Drawer and satellite preview */
@@ -1489,6 +1612,7 @@ function drawerHtml(c){
       `:""}
 
       <div class="primary-actions">
+        <button class="show-map-main" type="button" data-drawer-show="${esc(c.id)}">Show on map</button>
         <a class="directions-main" href="${esc(mapsUrl(c))}" target="_blank" rel="noopener">Directions</a>
         ${infoUrl
           ?`<a class="info-main" href="${esc(infoUrl)}" target="_blank" rel="noopener">Court information</a>`
@@ -1527,6 +1651,54 @@ function drawerPadding(){
     ?{paddingTopLeft:[28,28],paddingBottomRight:[28,Math.min(540,window.innerHeight*.6)]}
     :{paddingTopLeft:[32,32],paddingBottomRight:[390,32]};
 }
+function verifiedLatLng(c){
+  if(!hasPoint(c))return null;
+  const lat=Number(c.lat);
+  const lng=Number(c.lng);
+  if(!validCourtPoint(lat,lng))return null;
+  return L.latLng(lat,lng);
+}
+function focusCourtMarker(c,openDetails=true){
+  const latlng=verifiedLatLng(c);
+  if(!latlng){
+    showToast(
+      "This facility still needs a verified map location."
+    );
+    return false;
+  }
+
+  const marker=markerFor(c);
+  if(!marker)return false;
+
+  const reveal=()=>{
+    map.setView(latlng,17,{animate:false});
+    if(openDetails){
+      openDrawer(c);
+    }
+    window.setTimeout(()=>{
+      map.panInside(
+        latlng,
+        {
+          ...drawerPadding(),
+          animate:true
+        }
+      );
+    },240);
+  };
+
+  if(
+    cluster&&
+    typeof cluster.zoomToShowLayer==="function"
+  ){
+    cluster.zoomToShowLayer(
+      marker,
+      reveal
+    );
+  }else{
+    reveal();
+  }
+  return true;
+}
 function openDrawer(c){
   selectedCourt=c;
   const drawer=document.getElementById("drawer");
@@ -1544,6 +1716,16 @@ function openDrawer(c){
       });
     }
   },220);
+
+  const drawerShow=document.querySelector(
+    "[data-drawer-show]"
+  );
+  if(drawerShow){
+    drawerShow.addEventListener(
+      "click",
+      ()=>focusCourtMarker(c,false)
+    );
+  }
 
   loadWeather(c);
 }
@@ -1924,6 +2106,7 @@ function wireControls(){
 }
 
 async function init(){
+  clearCorruptedCoordinateCaches();
   hydrateSavedCoordinates();
   populateCities();
   createMap();

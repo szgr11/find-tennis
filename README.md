@@ -1,47 +1,44 @@
-# LA Tennis Court Finder — Build 13
+# LA Tennis Court Finder — Build 14 clean mapper
 
-This fixes the two Build 12 regressions.
+Build 14 replaces the corrupted coordinate layer with the mapping workflow from
+the last working detector-era release.
 
-## Slideshow fix
+## Mapping behavior
 
-All five aerial images are embedded directly inside `index.html` as compressed
-JPEG data. No `assets` folder is required, and the slideshow cannot break
-because of an omitted folder or relative path.
+- The ten verified embedded coordinates appear immediately.
+- Remaining facilities are mapped gradually with the proven two-worker ArcGIS
+  address queue.
+- Newly resolved pins appear without reloading.
+- Clicking **Show on map** gives that facility a priority lookup.
+- A facility is never opened until its coordinate passes:
+  - Southern California geographic bounds
+  - California region validation
+  - address-type validation
+  - ZIP or city consistency checks
+- Failed matches remain unpinned instead of opening an incorrect location.
 
-The loading screen visibly says:
+Build 14 clears old coordinate-cache formats once because the previous release
+had accepted corrupted locations and grouped many facilities at an incorrect
+point.
 
-```text
-LA court map · Build 13
-```
+## Drawer
 
-## Mapping fix
+The right-hand facility drawer now includes its own **Show on map** button.
 
-Build 13 restores compatibility with every coordinate-cache key used by the
-last working mapper:
+## Satellite imagery
 
-- `la-tennis-fast-v1`
-- `la-tennis-exact-v1`, `v2`, and `v3`
-- `la-tennis-runtime-point-v1`
-- `precise-v3`
-- `geo`
-- Build 12's `la-tennis-coordinate-v3`
-
-Previously mapped facilities therefore reappear immediately in browsers that
-used the working version. New mappings are saved in both the new and legacy
-formats.
-
-The proven ArcGIS address matcher and two-worker background mapping queue have
-also been restored. New dots appear without a page reload.
+The map can zoom to level 19, but imagery is upscaled from native level 17 to
+avoid Esri's repeated `Map data not yet available` placeholder at unsupported
+native zooms.
 
 ## Deploy
 
-Upload these four visible files, plus the hidden `.nojekyll`, to the repository
-root:
+Replace the repository root with:
 
 - `index.html`
 - `courts.csv`
 - `CNAME`
-- `README.md`
 - `.nojekyll`
+- `README.md`
 
-No image folder is needed.
+Confirm that the loading screen says `Build 14`.
