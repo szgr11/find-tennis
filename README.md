@@ -1,35 +1,39 @@
-# LA Tennis Court Finder — Build 14 clean mapper
+# LA Tennis Court Finder — Build 15 category clusters
 
-Build 14 replaces the corrupted coordinate layer with the mapping workflow from
-the last working detector-era release.
+Build 15 restores the earlier orange, blue, and purple marker-cluster map.
 
-## Mapping behavior
+## Critical mapping fix
 
-- The ten verified embedded coordinates appear immediately.
-- Remaining facilities are mapped gradually with the proven two-worker ArcGIS
-  address queue.
-- Newly resolved pins appear without reloading.
-- Clicking **Show on map** gives that facility a priority lookup.
-- A facility is never opened until its coordinate passes:
-  - Southern California geographic bounds
-  - California region validation
-  - address-type validation
-  - ZIP or city consistency checks
-- Failed matches remain unpinned instead of opening an incorrect location.
+The previous build converted blank latitude and longitude strings to numeric
+zero and therefore reported every facility as mapped. Build 15 treats blank
+coordinates as missing. The map begins with the ten verified facilities and
+then adds resolved facilities progressively.
 
-Build 14 clears old coordinate-cache formats once because the previous release
-had accepted corrupted locations and grouped many facilities at an incorrect
-point.
+The detector-era coordinate mapper has been restored:
 
-## Drawer
+- two background workers;
+- exact address lookup followed by facility-name fallback;
+- Southern California coordinate validation;
+- session and persistent cache support;
+- priority lookup when **Show on map** is selected;
+- markers appear without reloading.
 
-The right-hand facility drawer now includes its own **Show on map** button.
+Only the broken Build 14 cache namespace is removed. Earlier valid coordinate
+caches are preserved.
 
-## Satellite imagery
+## Map colors
 
-The map can zoom to level 19, but imagery is upscaled from native level 17 to
-avoid Esri's repeated `Map data not yet available` placeholder at unsupported
-native zooms.
+- Orange: pay courts
+- Blue: open play
+- Purple: clubs
+
+Each category has its own colored cluster layer.
+
+## Typography
+
+- Barlow Condensed: athletic headings
+- Manrope: controls, data, buttons, addresses, and list content
+- Source Serif 4: limited to loading and descriptive narrative text
 
 ## Deploy
 
@@ -41,4 +45,4 @@ Replace the repository root with:
 - `.nojekyll`
 - `README.md`
 
-Confirm that the loading screen says `Build 14`.
+Confirm the launch screen says `Build 15`.
