@@ -1,33 +1,30 @@
-# LA Tennis Court Finder — Build 17 map focus
+# LA + Orange County Tennis Court Finder — Build 18
 
-Build 17 restores **Show on map** as a close, clear map-view action.
+## Direct Show on map
 
-## Show on map
+**Show on map** no longer waits for a marker-cluster callback. It now:
 
-Selecting **Show on map** from either the court list or facility drawer now:
+1. closes the list and facility drawer;
+2. calls Leaflet `setView` directly;
+3. centers the selected facility at zoom 19;
+4. briefly highlights the facility;
+5. requests a 1500-1800 pixel ArcGIS satellite export around the court.
 
-1. closes the court-list sheet;
-2. closes the facility drawer;
-3. expands the map to its full available area;
-4. zooms directly to the facility at zoom 18 on small phones and 18.5 on
-   larger screens;
-5. briefly highlights the selected pin and displays the facility name.
+Standard satellite tiles remain visible if the detailed export is unavailable.
 
-Clicking the colored map pin still opens the complete facility-details drawer.
+## Orange County expansion
 
-## Clearer imagery
+Added 28 official Orange County facilities across Anaheim, Brea,
+Buena Park, Fountain Valley, Laguna Niguel, Irvine, Huntington Beach, Costa
+Mesa, Newport Beach, Fullerton, Tustin, and Mission Viejo.
 
-- Satellite imagery receives a subtle contrast and saturation enhancement.
-- The map supports half-step zoom levels.
-- The facility photo uses a closer geographic crop and a 1000 × 570 export.
+The combined dataset now contains 193 facilities.
 
-## Preserved behavior
+## View controls
 
-- Desktop layout remains unchanged.
-- Mobile court-list and facility bottom sheets remain available.
-- Orange, blue, and purple category clusters remain intact.
-- Weather planner and Google Maps activity link remain intact.
-- Background facility mapping remains intact.
+- **Fit to view** fits all currently filtered mapped facilities.
+- **Reset** clears filters, nearby radius, selected facility, and detailed
+  imagery, then fits the combined LA and Orange County map.
 
 ## Deploy
 
@@ -39,4 +36,4 @@ Replace the repository root with:
 - `.nojekyll`
 - `README.md`
 
-Confirm the loading screen says `Build 17`.
+Confirm the loading screen says `Build 18`.
