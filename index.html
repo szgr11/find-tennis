@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v22-half-mile-mobile-a11y">
+<meta name="application-build" content="weather-courtfinder-v23-quarter-mile-mobile-a11y">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA + OC Tennis Court Finder</title>
 
@@ -1512,7 +1512,7 @@ select:focus-visible{
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 22</div>
+      <div class="launch-kicker">LA court map · Build 23</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and tennis centers across Los Angeles and Orange County.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
@@ -2657,7 +2657,7 @@ function focusBoundsAround(latlng,radiusMeters){
     ]
   );
 }
-const FOCUS_VIEW_METERS=804.672;
+const FOCUS_VIEW_METERS=402.336;
 const FOCUS_HALF_SIDE_METERS=FOCUS_VIEW_METERS/2;
 function focusViewportOptions(){
   const mobile=window.matchMedia(
@@ -2763,7 +2763,7 @@ function loadHighResolutionFocus(c,latlng){
     focusImageryOverlay=null;
   }
 
-  // Export the full visible viewport after the responsive half-mile focus
+  // Export the full visible viewport after the responsive quarter-mile focus
   // has settled. This avoids a sharp center patch surrounded by blurry tiles.
   const bounds=map.getBounds();
   const mapSize=map.getSize();
@@ -2872,7 +2872,7 @@ async function focusCourtMarker(c,openDetails=false){
   clearHighResolutionFocus();
   map.stop();
 
-  // Frame an approximately half-mile by half-mile neighborhood instead of
+  // Frame an approximately quarter-mile by quarter-mile neighborhood instead of
   // using a fixed close zoom. Repeat after panels finish closing so the
   // responsive map dimensions do not change the final view.
   map.invalidateSize({pan:false});

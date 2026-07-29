@@ -1,32 +1,26 @@
-# LA + Orange County Tennis Court Finder — Build 22
+# LA + Orange County Tennis Court Finder — Build 23
 
-## Half-mile court focus
+## Quarter-mile court focus
 
-**Show on map** now frames an approximately 0.5-mile by 0.5-mile ground-distance area around the selected facility instead of using a fixed zoom level. The visible map may include additional context in one direction depending on screen aspect ratio.
+**Show on map** now frames an approximately **1/4 mile by 1/4 mile** ground-distance area around the selected court.
 
-The map repeats the fit after the court list or facility drawer finishes closing, preserving the final view on desktop and mobile.
+The responsive `fitBounds` behavior remains in place, so desktop and mobile show comparable real-world coverage even though their screen shapes differ.
 
-## High-resolution imagery
+## Detailed imagery
 
-The ArcGIS detailed satellite export now uses the full visible map bounds and a responsive 1200–2048 pixel image size. This keeps the entire focused viewport sharp rather than loading only a high-resolution patch around the pin.
+The high-resolution ArcGIS satellite export still covers the full visible map after the tighter viewport settles.
 
 ## Mobile accessibility
 
-- Mobile controls use 44-pixel minimum touch targets.
-- The Courts button is exposed correctly to assistive technology.
-- The mobile court browser is announced as a dialog and traps keyboard focus while open.
-- Closing the browser returns focus to the Courts button.
-- Search and filter controls have accessible labels.
-- Map, loading, imagery, and toast status messages are announced.
-- Visible keyboard focus outlines and reduced-motion support are included.
-- Layout was checked at 320 px and 390 px widths with no horizontal overflow.
+Build 22's mobile accessibility improvements are retained, including 44-pixel touch targets, dialog semantics, focus trapping, focus return, visible keyboard focus, reduced-motion support, and no horizontal overflow at 320- and 390-pixel widths.
 
 ## Deploy
 
-Replace the repository root files with:
+Replace the repository root with:
 
 - `index.html`
 - `courts.csv`
 - `README.md`
+- `CNAME` and `.nojekyll` if already used by the deployment
 
-Confirm the loading screen says **Build 22**.
+Confirm the loading screen says `Build 23`.
