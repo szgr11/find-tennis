@@ -1,45 +1,41 @@
-# LA Tennis Court Finder — Learning detector
+# LA Tennis Court Finder — mandatory launch calibration
 
-## Detection fixes
+## Launch behavior
 
-- The visible map is scanned first at high resolution.
-- The facility center is scanned at court-readable resolution.
-- Offset facilities use eight smaller high-resolution park tiles instead of
-  one large blurry image.
-- Court-line scanning yields to the browser every few milliseconds.
-- Every scan is cancellable and has a hard deadline.
-- The progress interface cannot freeze at 86%.
+Every new page launch opens a five-location detector setup.
 
-## Manual tuning
+For each location:
 
-Open a facility and choose **Tune layout manually**.
+1. Pan or zoom to the visible courts.
+2. Place one pin at the center of every individual tennis court.
+3. Complete all five locations.
 
-1. Click four corners of each individual court.
-2. Repeat for every court.
-3. Choose **Finish and tune detector**.
+The pin sets are converted into appearance, scale, orientation, and approximate
+court-layout references. Facility address mapping continues while the user
+works through the five locations.
 
-The layout and appearance descriptors are stored in the browser and loaded on
-future visits.
+Choosing **Skip setup and disable court detection** opens the site but disables
+court-layout detection for that visit.
 
-**Submit tuning on GitHub** opens a prefilled Issue in
-`szgr11/latenniscourts`. A static GitHub Pages site cannot safely write to the
-repository directly without exposing credentials.
+## Public feedback
 
-Reviewed Issue data can be added to `community_tuning.json`, allowing approved
-tuning to benefit every visitor.
+The former manual-correction interface has been removed. After a layout is
+detected, the only public detector-feedback action is **Report false positive**.
+It opens a prefilled GitHub Issue for review.
 
-## Typography
+## Map details
 
-- Barlow Condensed for athletic headings
-- Manrope for controls
-- Source Serif 4 for addresses, weather details, tune-up copy, and supporting
-  editorial text
+Facility details now open in a side drawer on desktop and a bottom drawer on
+mobile. The map physically resizes, so the card does not cover the courts.
 
-Long labels were shortened and components wrap safely.
+## Detection progress
+
+Court detection uses a compact status pill near the lower edge of the map,
+with a thin progress line and a small cancel control.
 
 ## Deploy
 
-Upload every file to the repository root and commit to `main`.
+Upload all files to the repository root and commit to `main`.
 
 GitHub Pages:
 
