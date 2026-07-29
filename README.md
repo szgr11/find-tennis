@@ -42,3 +42,11 @@ GitHub Pages:
 - Source: Deploy from a branch
 - Branch: main
 - Folder: / (root)
+
+
+## Finalization speed fix
+
+After the fifth location, the map opens in roughly half a second. Satellite
+descriptor extraction and reference loading continue in the background and no
+longer block the launch screen. A watchdog also forces the overlay closed if
+an unexpected browser or network error occurs.

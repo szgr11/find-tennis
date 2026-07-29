@@ -7758,49 +7758,62 @@ async function finalizeLaunchCalibration(){
  const text=document.getElementById(
   "calibrationFinalText"
  );
- let visual=12;
- const ticker=window.setInterval(()=>{
-  visual=Math.min(
-   92,
-   Math.max(
-    visual+3,
-    15+calibrationProcessedCount*16
-   )
-  );
-  fill.style.width=`${visual}%`;
-  text.textContent=
-   `${calibrationProcessedCount} of 5 locations processed`;
- },180);
 
- await Promise.race([
-  Promise.allSettled(
-   calibrationProcessingTasks
-  ),
-  waitMilliseconds(9000)
- ]);
- await Promise.race([
-  loadTuneUpReferences(),
-  waitMilliseconds(2500)
- ]);
-
- clearInterval(ticker);
- fill.style.width="100%";
- text.textContent="Detector ready";
+ // The five user decisions are enough to unlock the detector. Descriptor
+ // extraction and reference loading continue in the background and must
+ // never hold the user on this screen.
  detectionAllowed=true;
  launchCalibrationCompleted=true;
  renderList();
 
- window.setTimeout(()=>{
-  document.getElementById(
-   "launchCalibration"
-  ).hidden=true;
+ fill.style.width="96%";
+ text.textContent="Opening the court map...";
+
+ const finishInBackground=async ()=>{
+  await Promise.allSettled([
+   Promise.allSettled(calibrationProcessingTasks),
+   Promise.resolve()
+    .then(()=>loadTuneUpReferences())
+    .catch(error=>{
+     console.warn(
+      "Launch court references finished with an error",
+      error
+     );
+    })
+  ]);
+  if(launchCalibrationCompleted){
+   showToast(
+    "Court-reference processing finished in the background."
+   );
+  }
+ };
+ finishInBackground();
+
+ // Hard UI deadline: this screen disappears even if imagery, storage,
+ // or third-party services are slow or fail.
+ await waitMilliseconds(320);
+ fill.style.width="100%";
+ text.textContent="Detector ready";
+
+ await waitMilliseconds(180);
+ const overlay=document.getElementById(
+  "launchCalibration"
+ );
+ if(overlay)overlay.hidden=true;
+
+ try{
   calibrationMap?.remove();
-  calibrationMap=null;
-  map?.invalidateSize({pan:false});
-  showToast(
-   "Court detection tuned from five locations."
+ }catch(error){
+  console.warn(
+   "Calibration map cleanup was incomplete",
+   error
   );
- },350);
+ }
+ calibrationMap=null;
+ map?.invalidateSize({pan:false});
+ showToast(
+  "Court detection tuned from five locations."
+ );
 }
 async function advanceCalibration(){
  if(calibrationPins.length<1)return;
@@ -7915,7 +7928,38 @@ async function prepareCalibrationLocations(){
  });
  showCalibrationLocation();
 }
+function armCalibrationExitWatchdog(){
+ window.setTimeout(()=>{
+  const finalizing=document.getElementById(
+   "calibrationFinalizing"
+  );
+  const overlay=document.getElementById(
+   "launchCalibration"
+  );
+  if(
+   overlay&&
+   !overlay.hidden&&
+   finalizing&&
+   !finalizing.hidden&&
+   calibrationIndex>=4
+  ){
+   detectionAllowed=true;
+   launchCalibrationCompleted=true;
+   overlay.hidden=true;
+   try{
+    calibrationMap?.remove();
+   }catch(_){}
+   calibrationMap=null;
+   renderList();
+   map?.invalidateSize({pan:false});
+   showToast(
+    "The map opened while detector tuning continues."
+   );
+  }
+ },1800);
+}
 function beginLaunchCalibration(){
+ armCalibrationExitWatchdog();
  document.getElementById(
   "calibrationSkipWaiting"
  ).addEventListener(
