@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="application-build" content="launch-calibration-v11-immediate-exit">
 <meta name="color-scheme" content="dark">
 <title>LA Metro Tennis Court Finder</title>
 <link rel="preconnect" href="https://unpkg.com">
@@ -1483,7 +1487,7 @@ select{
 <div id="launchCalibration" class="launch-calibration">
  <section id="calibrationWaiting" class="calibration-waiting">
   <div class="calibration-waiting-card">
-   <div class="calibration-kicker">Detector setup</div>
+   <div class="calibration-kicker">Detector setup · Build 11</div>
    <h1>Preparing five court locations</h1>
    <p>Facility mapping and court references are loading in the background.</p>
    <div class="calibration-wait-track">
@@ -1529,7 +1533,7 @@ select{
  <section id="calibrationFinalizing" class="calibration-waiting" hidden>
   <div class="calibration-waiting-card">
    <div class="calibration-kicker">Detector setup</div>
-   <h1>Applying your court pins</h1>
+   <h1>Opening the court map</h1>
    <p>Building appearance and layout references while the remaining facilities continue mapping.</p>
    <div class="calibration-wait-track">
     <div id="calibrationFinalFill"></div>
@@ -7744,90 +7748,84 @@ function queueCurrentCalibrationLocation(){
   )
  );
 }
-async function finalizeLaunchCalibration(){
+function finalizeLaunchCalibration(){
+ // Unlock and reveal the actual site synchronously. No network request,
+ // descriptor extraction, animation, timer, or map cleanup is allowed to
+ // block this transition.
+ detectionAllowed=true;
+ launchCalibrationCompleted=true;
+
+ const overlay=document.getElementById(
+  "launchCalibration"
+ );
+ if(overlay){
+  overlay.hidden=true;
+  overlay.style.display="none";
+ }
+
  document.getElementById(
   "calibrationWorkspace"
  ).hidden=true;
  document.getElementById(
   "calibrationFinalizing"
- ).hidden=false;
+ ).hidden=true;
 
- const fill=document.getElementById(
-  "calibrationFinalFill"
- );
- const text=document.getElementById(
-  "calibrationFinalText"
- );
-
- // The five user decisions are enough to unlock the detector. Descriptor
- // extraction and reference loading continue in the background and must
- // never hold the user on this screen.
- detectionAllowed=true;
- launchCalibrationCompleted=true;
  renderList();
 
- fill.style.width="96%";
- text.textContent="Opening the court map...";
-
- const finishInBackground=async ()=>{
-  await Promise.allSettled([
-   Promise.allSettled(calibrationProcessingTasks),
-   Promise.resolve()
-    .then(()=>loadTuneUpReferences())
-    .catch(error=>{
-     console.warn(
-      "Launch court references finished with an error",
-      error
-     );
-    })
-  ]);
-  if(launchCalibrationCompleted){
-   showToast(
-    "Court-reference processing finished in the background."
+ // Cleanup waits until after the application is already visible.
+ window.setTimeout(()=>{
+  try{
+   calibrationMap?.off();
+   calibrationMap?.remove();
+  }catch(error){
+   console.warn(
+    "Calibration map cleanup was incomplete",
+    error
    );
   }
- };
- finishInBackground();
+  calibrationMap=null;
+  map?.invalidateSize({pan:false});
+ },0);
 
- // Hard UI deadline: this screen disappears even if imagery, storage,
- // or third-party services are slow or fail.
- await waitMilliseconds(320);
- fill.style.width="100%";
- text.textContent="Detector ready";
-
- await waitMilliseconds(180);
- const overlay=document.getElementById(
-  "launchCalibration"
- );
- if(overlay)overlay.hidden=true;
-
- try{
-  calibrationMap?.remove();
- }catch(error){
-  console.warn(
-   "Calibration map cleanup was incomplete",
-   error
+ // Court-reference extraction continues independently. Rejections are
+ // absorbed so they cannot affect the visible application.
+ Promise.allSettled(
+  calibrationProcessingTasks
+ ).then(()=>{
+  showToast(
+   "Court-reference processing finished."
   );
- }
- calibrationMap=null;
- map?.invalidateSize({pan:false});
+ }).catch(()=>{});
+
+ Promise.resolve()
+  .then(()=>loadTuneUpReferences())
+  .catch(error=>{
+   console.warn(
+    "Additional launch references were unavailable",
+    error
+   );
+  });
+
  showToast(
-  "Court detection tuned from five locations."
+  "Court detection is ready."
  );
 }
-async function advanceCalibration(){
+function advanceCalibration(){
  if(calibrationPins.length<1)return;
+
  const button=document.getElementById(
   "calibrationNext"
  );
  button.disabled=true;
  button.textContent="Saving location...";
+
  queueCurrentCalibrationLocation();
 
  if(calibrationIndex>=4){
-  await finalizeLaunchCalibration();
+  finalizeLaunchCalibration();
   return;
  }
+
  calibrationIndex++;
  showCalibrationLocation();
 }
@@ -7928,38 +7926,8 @@ async function prepareCalibrationLocations(){
  });
  showCalibrationLocation();
 }
-function armCalibrationExitWatchdog(){
- window.setTimeout(()=>{
-  const finalizing=document.getElementById(
-   "calibrationFinalizing"
-  );
-  const overlay=document.getElementById(
-   "launchCalibration"
-  );
-  if(
-   overlay&&
-   !overlay.hidden&&
-   finalizing&&
-   !finalizing.hidden&&
-   calibrationIndex>=4
-  ){
-   detectionAllowed=true;
-   launchCalibrationCompleted=true;
-   overlay.hidden=true;
-   try{
-    calibrationMap?.remove();
-   }catch(_){}
-   calibrationMap=null;
-   renderList();
-   map?.invalidateSize({pan:false});
-   showToast(
-    "The map opened while detector tuning continues."
-   );
-  }
- },1800);
-}
+
 function beginLaunchCalibration(){
- armCalibrationExitWatchdog();
  document.getElementById(
   "calibrationSkipWaiting"
  ).addEventListener(

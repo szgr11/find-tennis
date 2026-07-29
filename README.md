@@ -1,52 +1,32 @@
-# LA Tennis Court Finder — mandatory launch calibration
+# LA Tennis Court Finder — Build 11 immediate exit
 
-## Launch behavior
+This build removes the launch finalization screen from the execution path.
 
-Every new page launch opens a five-location detector setup.
+After the fifth calibration location:
 
-For each location:
+1. Court detection is enabled synchronously.
+2. The launch overlay is hidden synchronously.
+3. The main map is rendered immediately.
+4. Satellite descriptor extraction continues in the background.
+5. Calibration-map cleanup happens only after the site is visible.
 
-1. Pan or zoom to the visible courts.
-2. Place one pin at the center of every individual tennis court.
-3. Complete all five locations.
+There is no awaited promise, progress loop, animation, or network request
+between the fifth click and opening the main map.
 
-The pin sets are converted into appearance, scale, orientation, and approximate
-court-layout references. Facility address mapping continues while the user
-works through the five locations.
+## Confirming the deployed version
 
-Choosing **Skip setup and disable court detection** opens the site but disables
-court-layout detection for that visit.
+The launch screen says:
 
-## Public feedback
+```text
+Detector setup · Build 11
+```
 
-The former manual-correction interface has been removed. After a layout is
-detected, the only public detector-feedback action is **Report false positive**.
-It opens a prefilled GitHub Issue for review.
-
-## Map details
-
-Facility details now open in a side drawer on desktop and a bottom drawer on
-mobile. The map physically resizes, so the card does not cover the courts.
-
-## Detection progress
-
-Court detection uses a compact status pill near the lower edge of the map,
-with a thin progress line and a small cancel control.
+An older screen without `Build 11`, or one that says
+`Applying your court pins`, is a cached or older deployment.
 
 ## Deploy
 
-Upload all files to the repository root and commit to `main`.
+Delete or overwrite the existing repository files, upload every file from this
+folder to the repository root, and commit to `main`.
 
-GitHub Pages:
-
-- Source: Deploy from a branch
-- Branch: main
-- Folder: / (root)
-
-
-## Finalization speed fix
-
-After the fifth location, the map opens in roughly half a second. Satellite
-descriptor extraction and reference loading continue in the background and no
-longer block the launch screen. A watchdog also forces the overlay closed if
-an unexpected browser or network error occurs.
+GitHub Pages should publish from `main` and `/ (root)`.
