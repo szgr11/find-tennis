@@ -557,12 +557,132 @@ body{background:#171614;color:var(--ink)}
   }
 }
 
+
+/* Tennis-themed usability layer */
+:root{
+  --tennis-lime:#c8ef46;
+  --tennis-lime-soft:#e4f8a2;
+  --court-green:#1f9b63;
+  --court-green-deep:#116844;
+  --pay:#f0a33a;
+  --open:#52bf77;
+  --club:#9a82dd;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.brand::before{
+  content:"";
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%,transparent 56%,rgba(255,255,255,.75) 58% 64%,transparent 66%),
+    var(--tennis-lime);
+  box-shadow:0 0 0 1px rgba(0,0,0,.28);
+}
+.search:focus,.select:focus,.filter-select:focus{
+  outline:2px solid var(--tennis-lime);
+  outline-offset:1px;
+}
+.toggle[aria-pressed="true"]{
+  border-color:rgba(200,239,70,.72);
+  box-shadow:0 0 0 1px rgba(200,239,70,.16);
+}
+.mini-button.active,
+.actions button.primary,
+.facility-actions .layout-action{
+  background:var(--tennis-lime);
+  border-color:var(--tennis-lime);
+  color:#171914;
+}
+.mini-button.active:hover,
+.actions button.primary:hover,
+.facility-actions .layout-action:hover{
+  background:#d9fa61;
+}
+.discovery-tools{
+  border-left:3px solid var(--tennis-lime);
+}
+.discovery-status strong{
+  color:var(--tennis-lime-soft);
+}
+.card{
+  transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease;
+}
+.card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+}
+.card .actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.card .actions .primary{
+  grid-column:1/-1;
+  min-height:38px;
+  font-size:11px;
+}
+.card .actions button,
+.card .actions a{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  text-align:center;
+}
+.card .actions button:disabled{
+  cursor:wait;
+  opacity:.72;
+}
+.tag.map-ready{
+  border-color:rgba(82,191,119,.58);
+  background:rgba(31,155,99,.12);
+  color:#bce8cb;
+}
+.tag.map-pending{
+  border-color:rgba(200,239,70,.42);
+  background:rgba(200,239,70,.08);
+  color:#dff49a;
+}
+.mapping-pulse{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  margin-right:4px;
+  border-radius:50%;
+  background:var(--tennis-lime);
+  box-shadow:0 0 0 0 rgba(200,239,70,.5);
+  animation:mappingPulse 1.45s infinite;
+}
+@keyframes mappingPulse{
+  0%{box-shadow:0 0 0 0 rgba(200,239,70,.48)}
+  75%,100%{box-shadow:0 0 0 7px rgba(200,239,70,0)}
+}
+.detection-progress-fill{
+  background:linear-gradient(90deg,var(--court-green),var(--tennis-lime));
+}
+#map .leaflet-court-color-pane{
+  filter:saturate(1.55) contrast(1.24) brightness(1.04)!important;
+}
+.leaflet-interactive[stroke="#006f82"]{
+  stroke:var(--court-green)!important;
+}
+@media(max-width:720px){
+  .card .actions{grid-template-columns:1fr}
+  .card .actions .primary{grid-column:auto}
+}
+
 </style>
 </head>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand">LA Metro Tennis Court Finder</div>
+    <div class="brand">LA Tennis Court Finder</div>
     <input id="search" class="search" type="search" placeholder="Search court, park, city, or address">
     <div class="top-actions">
       <select id="city" class="select" aria-label="Filter by city"><option value="">All cities</option></select>
@@ -718,6 +838,16 @@ let manualAreaOutlineLayer=null;
 let regionIndexedResults=[];
 let appMapStarted=false;
 
+let backgroundMappingRunning=false;
+let backgroundMappingFinished=false;
+let backgroundMappingAttempted=0;
+let backgroundMappingResolved=0;
+let backgroundMappingFailures=0;
+let backgroundMappingTotal=0;
+let backgroundMappingLastRefresh=0;
+let backgroundMappingPromise=null;
+const addressMappingInFlight=new Map();
+
 
 function esc(value){
   return String(value??"").replace(/[&<>"']/g,ch=>({
@@ -755,12 +885,36 @@ function parseCache(raw){
   }catch(_){}
   return null;
 }
+function runtimePointKey(c){
+  return `la-tennis-runtime-point-v1:${c.id}`;
+}
 function readSavedPoint(c){
+  try{
+    const runtime=parseCache(
+      sessionStorage.getItem(runtimePointKey(c))
+    );
+    if(runtime)return runtime;
+  }catch(_){}
+
   for(const key of cacheCandidates(c)){
     const hit=parseCache(localStorage.getItem(key));
     if(hit)return hit;
   }
   return null;
+}
+function saveRuntimePoint(c){
+  if(!hasPoint(c))return;
+  try{
+    sessionStorage.setItem(
+      runtimePointKey(c),
+      JSON.stringify({
+        lat:Number(c.lat),
+        lng:Number(c.lng),
+        map_accuracy:
+          c.map_accuracy||"temporary address match"
+      })
+    );
+  }catch(_){}
 }
 function savePoint(c){
   if(!hasPoint(c))return;
@@ -776,6 +930,187 @@ function hydrateSavedPoints(){
     const saved=readSavedPoint(c);
     if(saved)Object.assign(c,saved);
   }
+}
+function waitMilliseconds(milliseconds){
+  return new Promise(resolve=>
+    window.setTimeout(resolve,milliseconds)
+  );
+}
+function waitForVisibleDocument(){
+  if(!document.hidden)return Promise.resolve();
+  return new Promise(resolve=>{
+    const handle=()=>{
+      if(document.hidden)return;
+      document.removeEventListener(
+        "visibilitychange",handle
+      );
+      resolve();
+    };
+    document.addEventListener(
+      "visibilitychange",handle
+    );
+  });
+}
+function acceptedGeocodeType(type){
+  return new Set([
+    "PointAddress",
+    "Subaddress",
+    "StreetAddress",
+    "StreetInt",
+    "StreetMidBlock",
+    "StreetBetween",
+    "POI"
+  ]).has(String(type||""));
+}
+async function requestAddressCandidate(c,query,minimumScore){
+  const url=
+    "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?"+
+    new URLSearchParams({
+      SingleLine:query,
+      sourceCountry:"USA",
+      outFields:[
+        "Match_addr",
+        "Addr_type",
+        "City",
+        "Region",
+        "Postal"
+      ].join(","),
+      maxLocations:"1",
+      forStorage:"false",
+      outSR:"4326",
+      f:"json"
+    });
+
+  const response=await fetchWithTimeout(
+    url,
+    {mode:"cors"},
+    5200
+  );
+  if(!response.ok){
+    throw new Error(
+      `Address service returned ${response.status}`
+    );
+  }
+
+  const data=await response.json();
+  const candidate=data?.candidates?.[0];
+  const lat=Number(candidate?.location?.y);
+  const lng=Number(candidate?.location?.x);
+  const score=Number(candidate?.score||0);
+  const type=candidate?.attributes?.Addr_type;
+  const region=String(
+    candidate?.attributes?.Region||""
+  ).toUpperCase();
+
+  if(
+    !candidate||
+    score<minimumScore||
+    !validPoint(lat,lng)||
+    !acceptedGeocodeType(type)||
+    (region&&region!=="CA"&&region!=="CALIFORNIA")
+  ){
+    return null;
+  }
+
+  return {
+    lat,
+    lng,
+    map_accuracy:
+      `${type||"address"} match · ${Math.round(score)}%`
+  };
+}
+async function geocodeCourtAddress(c){
+  const exact=await requestAddressCandidate(
+    c,
+    String(c.address||"").trim(),
+    76
+  ).catch(()=>null);
+  if(exact)return exact;
+
+  return await requestAddressCandidate(
+    c,
+    `${c.name}, ${c.city}, California`,
+    88
+  ).catch(()=>null);
+}
+async function ensureCourtPoint(c){
+  if(hasPoint(c))return c;
+  if(addressMappingInFlight.has(c.id)){
+    return addressMappingInFlight.get(c.id);
+  }
+
+  const promise=(async ()=>{
+    const point=await geocodeCourtAddress(c);
+    if(!point)return null;
+    Object.assign(c,point);
+    saveRuntimePoint(c);
+    return c;
+  })().finally(()=>{
+    addressMappingInFlight.delete(c.id);
+  });
+
+  addressMappingInFlight.set(c.id,promise);
+  return promise;
+}
+function refreshBackgroundMappingUI(force=false){
+  const now=Date.now();
+  if(
+    !force&&
+    now-backgroundMappingLastRefresh<700
+  )return;
+
+  backgroundMappingLastRefresh=now;
+  renderList();
+  rebuildMapLayers();
+}
+async function startBackgroundAddressMapping(){
+  if(backgroundMappingPromise)return backgroundMappingPromise;
+
+  const pending=COURTS.filter(c=>!hasPoint(c));
+  backgroundMappingTotal=pending.length;
+  if(!pending.length){
+    backgroundMappingFinished=true;
+    refreshBackgroundMappingUI(true);
+    return;
+  }
+
+  backgroundMappingRunning=true;
+  backgroundMappingFinished=false;
+  backgroundMappingAttempted=0;
+  backgroundMappingResolved=0;
+  backgroundMappingFailures=0;
+  refreshBackgroundMappingUI(true);
+
+  let cursor=0;
+  const worker=async ()=>{
+    while(cursor<pending.length){
+      await waitForVisibleDocument();
+      const index=cursor++;
+      const court=pending[index];
+      backgroundMappingAttempted++;
+
+      const mapped=await ensureCourtPoint(court);
+      if(mapped)backgroundMappingResolved++;
+      else backgroundMappingFailures++;
+
+      refreshBackgroundMappingUI(false);
+      await waitMilliseconds(210);
+    }
+  };
+
+  backgroundMappingPromise=Promise.all([
+    worker(),
+    worker()
+  ]).finally(()=>{
+    backgroundMappingRunning=false;
+    backgroundMappingFinished=true;
+    refreshBackgroundMappingUI(true);
+    showToast(
+      `${COURTS.filter(hasPoint).length} of ${COURTS.length} facilities are now mapped.`
+    );
+  });
+
+  return backgroundMappingPromise;
 }
 function categoryColor(category){return COLORS[category]||"#666"}
 function categoryLabel(category){return LABELS[category]||category}
@@ -1210,10 +1545,10 @@ function drawCourtOutlines(polygons){
 
   for(const polygon of polygons||[]){
     L.polygon(polygon,{
-      color:"#006f82",
+      color:"#1f9b63",
       weight:6,
       opacity:.76,
-      fillColor:"#00d8ff",
+      fillColor:"#c8ef46",
       fillOpacity:.26,
       interactive:false
     }).addTo(courtOutlineLayer);
@@ -3095,16 +3430,27 @@ function standardWindowCandidatePolygon(
 function rankStandardCourtWindows(
   imageData,c,bounds,width,height,options={}
 ){
+  const clock=()=>(
+    globalThis.performance?.now?.()??Date.now()
+  );
+  const startedAt=clock();
+  const budgetMs=Math.max(
+    180,
+    Number(options.scanBudgetMs)||720
+  );
+  const deadline=startedAt+budgetMs;
+  const expired=()=>clock()>=deadline;
+
   const mpp=metersPerPixel(bounds,width,height);
   const metersPerPixel=(mpp.x+mpp.y)/2;
 
-  // Geographic scale seeds several crop sizes only. It never enters
-  // the confidence score. Ratio matching determines confidence.
+  // Geographic scale seeds crop sizes only. Confidence remains based
+  // on normalized tennis-line ratios.
   const baseShort=18.29/Math.max(.1,metersPerPixel);
   const baseLong=36.58/Math.max(.1,metersPerPixel);
   const scales=Array.isArray(options.windowScales)
     ?options.windowScales
-    :[.80,1,1.24];
+    :[.82,1,1.2];
 
   const windows=scales
     .map(scale=>({
@@ -3124,24 +3470,24 @@ function rankStandardCourtWindows(
     ...windows.map(window=>window.shortPx)
   );
   const margin=Math.ceil(maximumLong*.62);
-  const patchSize=Number(options.patchSize)||32;
+  const patchSize=Number(options.patchSize)||28;
   const step=Math.max(
-    Number(options.minimumStep)||8,
+    Number(options.minimumStep)||9,
     Math.round(
       minimumShort*
-      (Number(options.stepScale)||1.05)
+      (Number(options.stepScale)||1.16)
     )
   );
   const angleStep=
-    Number(options.angleStepDegrees)||45;
-  const keep=Number(options.keepCandidates)||18;
-  const refineSeeds=Number(options.refineSeeds)||7;
+    Number(options.angleStepDegrees)||60;
+  const keep=Number(options.keepCandidates)||12;
+  const refineSeeds=Number(options.refineSeeds)||4;
   const refineOffsets=Array.isArray(options.refineOffsets)
     ?options.refineOffsets
-    :[-5,0,5];
+    :[-4,0,4];
   const refineAngles=Array.isArray(options.refineAngles)
     ?options.refineAngles
-    :[-12,-6,0,6,12];
+    :[-9,0,9];
 
   const top=[];
   const add=result=>{
@@ -3151,14 +3497,18 @@ function rankStandardCourtWindows(
     if(top.length>keep)top.length=keep;
   };
 
+  coarseScan:
   for(let y=margin;y<height-margin;y+=step){
+    if(expired())break;
     for(let x=margin;x<width-margin;x+=step){
+      if(expired())break coarseScan;
       for(const window of windows){
         for(
           let degrees=0;
           degrees<180;
           degrees+=angleStep
         ){
+          if(expired())break coarseScan;
           const result=scoreStandardCourtWindow(
             imageData,
             width,
@@ -3182,10 +3532,12 @@ function rankStandardCourtWindows(
   if(!top.length)return [];
 
   const refined=[];
+  refinement:
   for(const seed of top.slice(0,refineSeeds)){
     for(const dx of refineOffsets){
       for(const dy of refineOffsets){
         for(const degrees of refineAngles){
+          if(expired())break refinement;
           const result=scoreStandardCourtWindow(
             imageData,
             width,
@@ -3223,7 +3575,10 @@ function rankStandardCourtWindows(
       candidate.polygon
     );
     candidate.source=
-      "scale-tolerant line-ratio scan";
+      "time-bounded line-ratio scan";
+    candidate.scanElapsedMs=Math.round(
+      clock()-startedAt
+    );
   }
 
   return ranked;
@@ -3486,7 +3841,11 @@ async function preDetectCourtAreas(c,onProgress=()=>{},options={}){
     strictReference:true,
     candidateJoinDistance:background?135:120,
     minimumGroupScore:background?.55:.51,
-    maxCandidates:Math.max(3,Math.min(12,Number(c.court_count)||6))
+    maxCandidates:Math.max(3,Math.min(12,Number(c.court_count)||6)),
+    scanBudgetMs:background?900:620,
+    angleStepDegrees:background?45:60,
+    keepCandidates:background?16:10,
+    refineSeeds:background?5:3
   });
   if(polygons.length)savePreDetectionCache(c,polygons);
   return polygons;
@@ -3673,34 +4032,41 @@ async function activateCourtFootprint(c){
   let shownProgress=8;
   detectionProgress(
     shownProgress,
-    "Checking mapped geometry and court-line patterns…"
+    "Checking mapped geometry and tennis-line patterns…"
   );
 
   const ticker=window.setInterval(()=>{
-    shownProgress=Math.min(88,shownProgress+4);
+    shownProgress=Math.min(86,shownProgress+4);
     detectionProgress(
       shownProgress,
-      "Checking mapped geometry and court-line patterns…"
+      "Checking mapped geometry and tennis-line patterns…"
     );
   },260);
 
-  const result=await resolveCourtFootprints(
-    c,
-    (percent,label)=>{
-      if(
-        token!==footprintRequestToken||
-        selectedCourtId!==c.id
-      )return;
-      shownProgress=Math.max(shownProgress,percent);
-      detectionProgress(shownProgress,label);
-    },
-    {
-      background:false,
-      onCandidates:()=>{}
-    }
-  );
+  let result={polygons:[],source:"none"};
+  try{
+    result=await resolveCourtFootprints(
+      c,
+      (percent,label)=>{
+        if(
+          token!==footprintRequestToken||
+          selectedCourtId!==c.id
+        )return;
+        shownProgress=Math.max(shownProgress,percent);
+        detectionProgress(shownProgress,label);
+      },
+      {
+        background:false,
+        onCandidates:()=>{}
+      }
+    );
+  }catch(error){
+    console.warn("Court-layout attempt failed",error);
+    result={polygons:[],source:"error"};
+  }finally{
+    clearInterval(ticker);
+  }
 
-  clearInterval(ticker);
   if(
     token!==footprintRequestToken||
     selectedCourtId!==c.id
@@ -3724,7 +4090,7 @@ async function activateCourtFootprint(c){
     }
     detectionProgress(
       100,
-      "Confident court outline highlighted.",
+      "Confident court layout highlighted.",
       "complete"
     );
     hideDetectionProgress(650);
@@ -3736,7 +4102,9 @@ async function activateCourtFootprint(c){
     );
     detectionProgress(
       100,
-      "No confident outline found — use the full-color map and facility pin.",
+      result.source==="timeout"
+        ?"Layout scan reached its time limit — facility pin remains available."
+        :"No confident court layout found — use the full-color map and facility pin.",
       "warning"
     );
     hideDetectionProgress(1500);
@@ -3750,7 +4118,7 @@ function wireCorrectionButtons(root=document){
     button.dataset.wired="1";
     button.addEventListener("click",()=>{
       map?.closePopup();
-      showCourt(button.dataset.findCourt);
+      showCourt(button.dataset.findCourt,button);
     });
   });
 }
@@ -4029,24 +4397,61 @@ function rebuildMapLayers(){
     activeLayers=[layers.off];
   }
 }
-function showCourt(id){
+async function showCourt(id,sourceButton=null){
   const c=COURTS.find(item=>item.id===id);
-  const marker=markerFor(c);
-  if(!c||!marker||!map)return;
+  if(!c)return;
 
-  const reveal=()=>{
-    map.setView(marker.getLatLng(),18,{animate:false});
-    activateCourtFootprint(c);
-    window.setTimeout(()=>marker.openPopup(),40);
-  };
-  const mode=document.getElementById("clusterMode").value;
+  const originalLabel=sourceButton?.textContent;
+  if(sourceButton){
+    sourceButton.disabled=true;
+    sourceButton.textContent=hasPoint(c)
+      ?"Opening map…"
+      :"Locating address…";
+  }
 
-  if(mode==="category"&&layers.category[c.category]&&typeof layers.category[c.category].zoomToShowLayer==="function"){
-    layers.category[c.category].zoomToShowLayer(marker,reveal);
-  }else if(mode==="all"&&typeof layers.all.zoomToShowLayer==="function"){
-    layers.all.zoomToShowLayer(marker,reveal);
-  }else{
-    reveal();
+  try{
+    if(!hasPoint(c)){
+      const mapped=await ensureCourtPoint(c);
+      if(!mapped){
+        showToast(
+          "This address could not be placed automatically. Google Maps remains available."
+        );
+        return;
+      }
+      refreshBackgroundMappingUI(true);
+    }
+
+    const marker=markerFor(c);
+    if(!marker||!map)return;
+
+    const reveal=()=>{
+      map.setView(marker.getLatLng(),18,{animate:false});
+      activateCourtFootprint(c);
+      window.setTimeout(()=>marker.openPopup(),40);
+    };
+    const mode=document.getElementById("clusterMode").value;
+
+    if(
+      mode==="category"&&
+      layers.category[c.category]&&
+      typeof layers.category[c.category].zoomToShowLayer==="function"
+    ){
+      layers.category[c.category].zoomToShowLayer(
+        marker,reveal
+      );
+    }else if(
+      mode==="all"&&
+      typeof layers.all.zoomToShowLayer==="function"
+    ){
+      layers.all.zoomToShowLayer(marker,reveal);
+    }else{
+      reveal();
+    }
+  }finally{
+    if(sourceButton){
+      sourceButton.disabled=false;
+      sourceButton.textContent=originalLabel||"Show on map";
+    }
   }
 }
 function toggleShortlist(id){
@@ -4055,46 +4460,112 @@ function toggleShortlist(id){
   applyFilters();
 }
 function renderList(){
-  const filtered=sortCourts(COURTS.filter(matchesFilters));
-  document.getElementById("list").innerHTML=filtered.map(c=>{
-    const ready=hasPoint(c);
-    const saved=shortlisted.has(c.id);
-    const dist=userLocation&&ready?`${distanceMiles(userLocation,{lat:Number(c.lat),lng:Number(c.lng)}).toFixed(1)} mi`:"";
-    return `<article class="card ${ready?"":"unmapped"} ${saved?"shortlisted":""}" style="--c:${categoryColor(c.category)}">
-      <h2>${esc(c.name)}</h2>
-      <div class="address">${esc(c.address)}</div>
-      <div class="tags">
-        <span class="tag">${esc(categoryLabel(c.category))}</span>
-        <span class="tag">${esc(courtCountLabel(c))}</span>
-        <span class="tag">${esc(lightLabel(c.lights))}</span>
-        <span class="tag">${ready?"Mapped":"Map link only"}</span>
-        ${dist?`<span class="tag">${dist}</span>`:""}
-      </div>
-      <div class="actions">
-        ${ready?`<button class="primary" data-show="${esc(c.id)}" type="button">Show on map</button>`:""}
-        <button class="${saved?"saved":""}" data-save="${esc(c.id)}" type="button">${saved?"Saved":"Shortlist"}</button>
-        <a href="${esc(c.directions_url)}" target="_blank" rel="noopener">Google Maps</a>
-        <a href="${esc(c.info_url)}" target="_blank" rel="noopener">Official info</a>
-      </div>
-    </article>`;
-  }).join("");
+  const filtered=sortCourts(
+    COURTS.filter(matchesFilters)
+  );
+
+  document.getElementById("list").innerHTML=
+    filtered.map(c=>{
+      const ready=hasPoint(c);
+      const saved=shortlisted.has(c.id);
+      const locating=
+        !ready&&backgroundMappingRunning;
+      const dist=userLocation&&ready
+        ?`${distanceMiles(
+          userLocation,
+          {lat:Number(c.lat),lng:Number(c.lng)}
+        ).toFixed(1)} mi`
+        :"";
+
+      return `<article
+        class="card ${ready?"":"unmapped"} ${saved?"shortlisted":""}"
+        style="--c:${categoryColor(c.category)}"
+      >
+        <h2>${esc(c.name)}</h2>
+        <div class="address">${esc(c.address)}</div>
+
+        <div class="tags">
+          <span class="tag">${esc(categoryLabel(c.category))}</span>
+          <span class="tag">${esc(courtCountLabel(c))}</span>
+          <span class="tag">${esc(lightLabel(c.lights))}</span>
+          <span class="tag ${ready?"map-ready":"map-pending"}">
+            ${ready
+              ?"Mapped"
+              :locating
+                ?'<span class="mapping-pulse"></span>Locating'
+                :"Address link"
+            }
+          </span>
+          ${dist?`<span class="tag">${dist}</span>`:""}
+        </div>
+
+        <div class="actions">
+          <button
+            class="primary"
+            data-show="${esc(c.id)}"
+            type="button"
+          >Show on map</button>
+
+          <button
+            class="${saved?"saved":""}"
+            data-save="${esc(c.id)}"
+            type="button"
+          >${saved?"Saved":"Shortlist"}</button>
+
+          <a
+            href="${esc(c.directions_url)}"
+            target="_blank"
+            rel="noopener"
+          >Google Maps</a>
+
+          ${c.info_url
+            ?`<a
+                href="${esc(c.info_url)}"
+                target="_blank"
+                rel="noopener"
+              >Official info</a>`
+            :""
+          }
+        </div>
+      </article>`;
+    }).join("");
 
   document.querySelectorAll("[data-show]").forEach(button=>{
-    button.addEventListener("click",()=>showCourt(button.dataset.show));
+    button.addEventListener("click",()=>{
+      showCourt(button.dataset.show,button);
+    });
   });
   document.querySelectorAll("[data-save]").forEach(button=>{
-    button.addEventListener("click",()=>toggleShortlist(button.dataset.save));
+    button.addEventListener("click",()=>{
+      toggleShortlist(button.dataset.save);
+    });
   });
   wireCorrectionButtons(document);
 
   const totalMapped=COURTS.filter(hasPoint).length;
   let scope="";
-  if(proximityRadiusMiles!==null)scope=` · within ${proximityRadiusMiles} mi`;
-  else if(regionFilterBounds)scope=" · inside brushed area";
+  if(proximityRadiusMiles!==null){
+    scope=` · within ${proximityRadiusMiles} mi`;
+  }else if(regionFilterBounds){
+    scope=" · inside brushed area";
+  }
+
+  let mappingStatus="";
+  if(backgroundMappingRunning){
+    mappingStatus=
+      ` · <span class="mapping-pulse"></span>locating ${Math.min(
+        backgroundMappingAttempted,
+        backgroundMappingTotal
+      )}/${backgroundMappingTotal}`;
+  }else if(backgroundMappingFinished&&backgroundMappingFailures){
+    mappingStatus=
+      ` · ${backgroundMappingFailures} address${backgroundMappingFailures===1?"":"es"} need manual lookup`;
+  }
 
   document.getElementById("status").innerHTML=
-    `<strong>${totalMapped} mapped instantly</strong> · ${shortlisted.size} shortlisted${scope}`;
-  document.getElementById("visibleCount").textContent=`${filtered.length} shown`;
+    `<strong>${totalMapped}/${COURTS.length} mapped</strong>${mappingStatus} · ${shortlisted.size} shortlisted${scope}`;
+  document.getElementById("visibleCount").textContent=
+    `${filtered.length} shown`;
 }
 function applyFilters(){
   if(selectedCourtId){
@@ -4198,6 +4669,10 @@ async function findCourtsNearMe(){
   button.disabled=true;
   button.textContent="Locating…";
 
+  // Nearby search is a location/filter action. It should never wait for
+  // a court-layout analysis that was started elsewhere.
+  clearCourtFootprint();
+
   try{
     const location=await requestUserLocation();
     clearAreaIndex();
@@ -4210,9 +4685,6 @@ async function findCourtsNearMe(){
     document.getElementById("sort").value="distance";
     button.classList.add("active");
     document.getElementById("brushArea").classList.remove("active");
-    updateDiscoveryStatus(
-      `Showing mapped courts within ${proximityRadiusMiles} miles of you.`
-    );
     applyFilters();
     fitVisible();
 
@@ -4222,10 +4694,16 @@ async function findCourtsNearMe(){
         lat:Number(c.lat),lng:Number(c.lng)
       })<=proximityRadiusMiles
     );
-    if(nearby.length){
-      queueCourtsForCaching(nearby);
-    }
-    showToast(`${nearby.length} mapped facilities found in the radius.`);
+
+    updateDiscoveryStatus(
+      `${nearby.length} currently mapped facilit${nearby.length===1?"y":"ies"} within ${proximityRadiusMiles} miles. Newly located addresses will appear automatically.`
+    );
+    showToast(
+      `${nearby.length} nearby facilities shown.`
+    );
+
+    // Continue address placement, not expensive court-layout scans.
+    startBackgroundAddressMapping();
   }catch(_){
     showToast("Your location could not be retrieved.");
   }finally{
@@ -4658,6 +5136,12 @@ function init(){
   loadStateFromUrl();
   renderList();
   startMapApplication();
+
+  // Render immediately, then place remaining address-based facilities
+  // gradually without blocking search or map interaction.
+  window.setTimeout(()=>{
+    startBackgroundAddressMapping();
+  },350);
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
 else init();
