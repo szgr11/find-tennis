@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v21-hires-focus">
+<meta name="application-build" content="weather-courtfinder-v22-half-mile-mobile-a11y">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA + OC Tennis Court Finder</title>
 
@@ -41,6 +41,7 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);c
 button,input,select{font:inherit}
 button,a{touch-action:manipulation}
 [hidden]{display:none!important}
+.mobile-menu{display:none}
 
 /* Launch slideshow */
 .launch{
@@ -883,7 +884,7 @@ select,
   .topbar .input{
     grid-column:1/-1;
     grid-row:2;
-    min-height:43px;
+    min-height:44px;
     font-size:16px;
   }
 
@@ -892,9 +893,10 @@ select,
   }
 
   .topbar > .button{
-    min-height:42px;
+    min-height:44px;
     padding:0 13px;
     white-space:nowrap;
+    font-size:11px;
   }
 
   .mobile-menu{
@@ -985,14 +987,14 @@ select,
   }
 
   .mobile-sheet-close{
-    min-width:64px;
-    min-height:40px;
+    min-width:68px;
+    min-height:44px;
     border:1px solid #5b5750;
     border-radius:999px;
     background:#302d2a;
     color:#eeeae5;
     font-family:var(--ui);
-    font-size:10px;
+    font-size:11px;
     font-weight:750;
   }
 
@@ -1023,9 +1025,9 @@ select,
 
   .category-toggle{
     min-width:0;
-    min-height:42px;
-    padding:0 7px;
-    font-size:9px;
+    min-height:44px;
+    padding:0 8px;
+    font-size:11px;
     white-space:nowrap;
   }
 
@@ -1097,7 +1099,7 @@ select,
   .card-actions button,
   .card-actions a{
     min-height:44px;
-    font-size:10px;
+    font-size:11px;
   }
 
   .drawer{
@@ -1134,10 +1136,10 @@ select,
 
   .drawer-close{
     top:10px;
-    min-width:62px;
-    min-height:38px;
-    margin:5px 10px -43px 0;
-    font-size:9px;
+    min-width:68px;
+    min-height:44px;
+    margin:5px 10px -49px 0;
+    font-size:10px;
   }
 
   .facility-photo{
@@ -1175,7 +1177,7 @@ select,
   .primary-actions a,
   .primary-actions button{
     min-height:46px;
-    font-size:10px;
+    font-size:11px;
   }
 
   .weather-controls{
@@ -1257,7 +1259,7 @@ select,
   .topbar > .button{
     min-width:0;
     padding:0 10px;
-    font-size:10px;
+    font-size:11px;
   }
 
   .sidebar{
@@ -1271,7 +1273,7 @@ select,
   }
 
   .category-toggle{
-    font-size:8px;
+    font-size:11px;
   }
 
   .filter-grid{
@@ -1363,7 +1365,7 @@ select,
 
   .topbar > .button{
     padding:0 8px;
-    font-size:9px;
+    font-size:11px;
   }
 
   .category-row{
@@ -1485,6 +1487,23 @@ select,
   }
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible{
+  outline:3px solid var(--lime);
+  outline-offset:2px;
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1493,12 +1512,12 @@ select,
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 21</div>
+      <div class="launch-kicker">LA court map · Build 22</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and tennis centers across Los Angeles and Orange County.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
       <div class="launch-meta">
-        <span id="launchStatus">Starting facility map...</span>
+        <span id="launchStatus" role="status" aria-live="polite">Starting facility map...</span>
         <span id="launchPercent">8%</span>
       </div>
     </div>
@@ -1508,10 +1527,10 @@ select,
 <div class="app">
   <header class="topbar">
     <div class="brand"><span class="brand-ball"></span>LA + OC Tennis Court Finder</div>
-    <input id="search" class="input" type="search" placeholder="Search court, park, city, or address">
-    <select id="city" class="select"><option value="">All areas</option></select>
+    <input id="search" class="input" type="search" aria-label="Search courts, parks, cities, or addresses" placeholder="Search court, park, city, or address">
+    <select id="city" class="select" aria-label="Filter by area"><option value="">All areas</option></select>
     <button id="locate" class="button" type="button">Locate me</button>
-    <button id="mobileMenu" class="button mobile-menu" type="button" hidden aria-controls="sidebar" aria-expanded="false">Courts</button>
+    <button id="mobileMenu" class="button mobile-menu" type="button" aria-controls="sidebar" aria-expanded="false">Courts</button>
   </header>
 
   <main class="workspace">
@@ -1546,13 +1565,13 @@ select,
         </div>
 
         <div class="filter-grid">
-          <select id="lights" class="select">
+          <select id="lights" class="select" aria-label="Filter by lighting">
             <option value="">Any lighting</option>
             <option value="yes">Lights</option>
             <option value="no">No lights</option>
             <option value="unknown">Lights unknown</option>
           </select>
-          <select id="sort" class="select">
+          <select id="sort" class="select" aria-label="Sort court results">
             <option value="name">Sort by name</option>
             <option value="distance">Sort by distance</option>
             <option value="courts">Sort by court count</option>
@@ -1561,7 +1580,7 @@ select,
 
         <div class="near-row">
           <button id="nearby" class="button primary" type="button">Find courts near me</button>
-          <select id="radius" class="select">
+          <select id="radius" class="select" aria-label="Nearby search radius">
             <option value="3">3 miles</option>
             <option value="5" selected>5 miles</option>
             <option value="10">10 miles</option>
@@ -1575,23 +1594,23 @@ select,
         </div>
       </section>
 
-      <div class="status">
+      <div class="status" role="status" aria-live="polite">
         <span id="mappingStatus"><strong>10/193 mapped</strong></span>
         <span id="visibleStatus">193 shown</span>
       </div>
 
-      <section id="list" class="list"></section>
+      <section id="list" class="list" aria-label="Court results"></section>
     </aside>
 
     <section id="mapPane" class="map-pane">
-      <div id="map"></div>
-      <div id="focusResolutionBadge" class="focus-resolution-badge" hidden>Loading detailed satellite view...</div>
+      <div id="map" role="region" aria-label="Interactive map of Los Angeles and Orange County tennis courts" tabindex="0"></div>
+      <div id="focusResolutionBadge" class="focus-resolution-badge" role="status" aria-live="polite" hidden>Loading detailed satellite view...</div>
       <aside id="drawer" class="drawer" hidden aria-label="Facility details">
         <div class="drawer-handle" aria-hidden="true"></div>
-        <button id="drawerClose" class="drawer-close" type="button">Close</button>
+        <button id="drawerClose" class="drawer-close" type="button" aria-label="Close facility details">Close</button>
         <div id="drawerContent"></div>
       </aside>
-      <div id="toast" class="toast" hidden></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     </section>
   </main>
 </div>
@@ -2267,7 +2286,7 @@ function renderList(filtered){
         ${distance?`<span class="tag">${distance}</span>`:""}
       </div>
       <div class="card-actions">
-        <button class="show-map" type="button" data-show="${esc(c.id)}">Show on map</button>
+        <button class="show-map" type="button" data-show="${esc(c.id)}" aria-label="Show ${esc(c.name)} on map">Show on map</button>
         <a class="directions" href="${esc(mapsUrl(c))}" target="_blank" rel="noopener">Directions</a>
         ${c.info_url
           ?`<a class="court-info" href="${esc(c.info_url)}" target="_blank" rel="noopener">Court information</a>`
@@ -2513,7 +2532,7 @@ function drawerHtml(c){
       `:""}
 
       <div class="primary-actions">
-        <button class="show-map-main" type="button" data-drawer-show="${esc(c.id)}">Show on map</button>
+        <button class="show-map-main" type="button" data-drawer-show="${esc(c.id)}" aria-label="Show ${esc(c.name)} on map">Show on map</button>
         <a class="directions-main" href="${esc(mapsUrl(c))}" target="_blank" rel="noopener">Directions</a>
         ${infoUrl
           ?`<a class="info-main" href="${esc(infoUrl)}" target="_blank" rel="noopener">Court information</a>`
@@ -2614,25 +2633,52 @@ function showMapFocusEffect(c,latlng){
   );
 }
 function focusBoundsAround(latlng,radiusMeters){
-  const projected=map.options.crs.project(latlng);
-  const southwest=map.options.crs.unproject(
-    L.point(
-      projected.x-radiusMeters,
-      projected.y-radiusMeters
-    )
-  );
-  const northeast=map.options.crs.unproject(
-    L.point(
-      projected.x+radiusMeters,
-      projected.y+radiusMeters
-    )
-  );
+  const earthRadius=6378137;
+  const latitudeRadians=latlng.lat*Math.PI/180;
+  const latitudeDelta=radiusMeters/earthRadius*180/Math.PI;
+  const longitudeDelta=
+    radiusMeters/
+    (
+      earthRadius*Math.max(
+        .15,
+        Math.cos(latitudeRadians)
+      )
+    )*
+    180/Math.PI;
+
   return L.latLngBounds(
-    southwest,
-    northeast
+    [
+      latlng.lat-latitudeDelta,
+      latlng.lng-longitudeDelta
+    ],
+    [
+      latlng.lat+latitudeDelta,
+      latlng.lng+longitudeDelta
+    ]
   );
 }
-function focusImageryUrl(bounds,pixelSize){
+const FOCUS_VIEW_METERS=804.672;
+const FOCUS_HALF_SIDE_METERS=FOCUS_VIEW_METERS/2;
+function focusViewportOptions(){
+  const mobile=window.matchMedia(
+    "(max-width:900px)"
+  ).matches;
+  return {
+    padding:mobile?[18,18]:[28,28],
+    animate:false,
+    maxZoom:18
+  };
+}
+function applyCourtFocusViewport(latlng){
+  map.fitBounds(
+    focusBoundsAround(
+      latlng,
+      FOCUS_HALF_SIDE_METERS
+    ),
+    focusViewportOptions()
+  );
+}
+function focusImageryUrl(bounds,pixelWidth,pixelHeight){
   const southwest=map.options.crs.project(
     bounds.getSouthWest()
   );
@@ -2651,7 +2697,7 @@ function focusImageryUrl(bounds,pixelSize){
       ].join(","),
       bboxSR:"3857",
       imageSR:"3857",
-      size:`${pixelSize},${pixelSize}`,
+      size:`${pixelWidth},${pixelHeight}`,
       format:"jpg",
       compressionQuality:"95",
       dpi:"192",
@@ -2717,19 +2763,27 @@ function loadHighResolutionFocus(c,latlng){
     focusImageryOverlay=null;
   }
 
-  // Keep the export tightly framed around the facility so the court
-  // surface uses substantially more source pixels than the normal tile view.
-  const radiusMeters=
-    window.innerWidth<=560
-      ?105
-      :125;
-  const pixelSize=
-    window.devicePixelRatio>=1.5
-      ?2048
-      :1800;
-  const bounds=focusBoundsAround(
-    latlng,
-    radiusMeters
+  // Export the full visible viewport after the responsive half-mile focus
+  // has settled. This avoids a sharp center patch surrounded by blurry tiles.
+  const bounds=map.getBounds();
+  const mapSize=map.getSize();
+  const density=Math.min(
+    2.5,
+    Math.max(1,window.devicePixelRatio||1)
+  );
+  const pixelWidth=Math.max(
+    1200,
+    Math.min(
+      2048,
+      Math.round(mapSize.x*density*1.35)
+    )
+  );
+  const pixelHeight=Math.max(
+    1200,
+    Math.min(
+      2048,
+      Math.round(mapSize.y*density*1.35)
+    )
   );
 
   setFocusResolutionBadge(
@@ -2739,7 +2793,8 @@ function loadHighResolutionFocus(c,latlng){
   const overlay=L.imageOverlay(
     focusImageryUrl(
       bounds,
-      pixelSize
+      pixelWidth,
+      pixelHeight
     ),
     bounds,
     {
@@ -2817,10 +2872,11 @@ async function focusCourtMarker(c,openDetails=false){
   clearHighResolutionFocus();
   map.stop();
 
-  // Use native high-resolution imagery at close zoom instead of enlarging
-  // lower-zoom tiles. Center immediately, then repeat after panel transitions.
+  // Frame an approximately half-mile by half-mile neighborhood instead of
+  // using a fixed close zoom. Repeat after panels finish closing so the
+  // responsive map dimensions do not change the final view.
   map.invalidateSize({pan:false});
-  map.setView(latlng,19,{animate:false});
+  applyCourtFocusViewport(latlng);
 
   await waitForMapLayout(
     drawerWasOpen&&!openDetails
@@ -2833,10 +2889,13 @@ async function focusCourtMarker(c,openDetails=false){
     debounceMoveend:false
   });
   map.stop();
-  map.setView(latlng,19,{animate:false});
+  applyCourtFocusViewport(latlng);
 
   showMapFocusEffect(c,latlng);
   loadHighResolutionFocus(c,latlng);
+  document.getElementById("map")?.focus({
+    preventScroll:true
+  });
 
   if(openDetails){
     openDrawer(c);
@@ -3225,9 +3284,21 @@ function setMobileSidebar(open){
   const sidebar=document.getElementById("sidebar");
   const backdrop=document.getElementById("mobileBackdrop");
   const menu=document.getElementById("mobileMenu");
+  const mobile=isMobileLayout();
 
   sidebar.classList.toggle("open",open);
   backdrop.hidden=!open;
+  sidebar.setAttribute(
+    "aria-hidden",
+    String(mobile&&!open)
+  );
+  if(mobile){
+    sidebar.setAttribute("role","dialog");
+    sidebar.setAttribute("aria-modal","true");
+  }else{
+    sidebar.removeAttribute("role");
+    sidebar.removeAttribute("aria-modal");
+  }
   menu.setAttribute(
     "aria-expanded",
     String(open)
@@ -3239,7 +3310,7 @@ function setMobileSidebar(open){
 
   if(open){
     window.setTimeout(()=>{
-      document.getElementById("search")?.focus({
+      document.getElementById("mobileSidebarClose")?.focus({
         preventScroll:true
       });
     },220);
@@ -3288,11 +3359,17 @@ function wireControls(){
   });
   document.getElementById("mobileSidebarClose").addEventListener(
     "click",
-    ()=>setMobileSidebar(false)
+    ()=>{
+      setMobileSidebar(false);
+      document.getElementById("mobileMenu").focus();
+    }
   );
   document.getElementById("mobileBackdrop").addEventListener(
     "click",
-    ()=>setMobileSidebar(false)
+    ()=>{
+      setMobileSidebar(false);
+      document.getElementById("mobileMenu").focus();
+    }
   );
   document.querySelectorAll(".category-toggle").forEach(button=>{
     button.addEventListener("click",()=>{
@@ -3310,8 +3387,18 @@ function wireControls(){
     });
   });
   window.addEventListener("resize",()=>{
+    const sidebar=document.getElementById("sidebar");
     if(!isMobileLayout()){
       setMobileSidebar(false);
+      sidebar.setAttribute("aria-hidden","false");
+      sidebar.removeAttribute("role");
+      sidebar.removeAttribute("aria-modal");
+    }else{
+      sidebar.setAttribute("role","dialog");
+      sidebar.setAttribute("aria-modal","true");
+      if(!sidebar.classList.contains("open")){
+        sidebar.setAttribute("aria-hidden","true");
+      }
     }
     if(selectedCourt){
       setTimeout(()=>map.invalidateSize({pan:false}),80);
@@ -3319,6 +3406,31 @@ function wireControls(){
   });
 
   document.addEventListener("keydown",event=>{
+    const sidebar=document.getElementById("sidebar");
+    if(
+      event.key==="Tab"&&
+      isMobileLayout()&&
+      sidebar.classList.contains("open")
+    ){
+      const focusable=[...sidebar.querySelectorAll(
+        'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
+      )].filter(element=>{
+        const style=window.getComputedStyle(element);
+        return style.display!=="none"&&style.visibility!=="hidden";
+      });
+      if(focusable.length){
+        const first=focusable[0];
+        const last=focusable[focusable.length-1];
+        if(event.shiftKey&&document.activeElement===first){
+          event.preventDefault();
+          last.focus();
+        }else if(!event.shiftKey&&document.activeElement===last){
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
     if(event.key!=="Escape")return;
 
     if(
@@ -3332,6 +3444,7 @@ function wireControls(){
       document.getElementById("sidebar").classList.contains("open")
     ){
       setMobileSidebar(false);
+      document.getElementById("mobileMenu").focus();
     }
   });
 }
@@ -3367,6 +3480,15 @@ async function init(){
   );
   createMap();
   wireControls();
+  const sidebar=document.getElementById("sidebar");
+  sidebar.setAttribute(
+    "aria-hidden",
+    String(isMobileLayout())
+  );
+  if(isMobileLayout()){
+    sidebar.setAttribute("role","dialog");
+    sidebar.setAttribute("aria-modal","true");
+  }
   renderAll();
 
   startBackgroundMapping();
