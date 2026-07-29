@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="application-build" content="weather-courtfinder-v15-category-clusters">
+<meta name="application-build" content="weather-courtfinder-v17-map-focus">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>LA Tennis Court Finder</title>
 
@@ -831,6 +831,612 @@ select,
   font-weight:700;
 }
 
+
+/* Build 16 — mobile interaction layer */
+:root{
+  --mobile-header-height:112px;
+}
+.mobile-sheet-header,
+.mobile-area-field,
+.mobile-backdrop,
+.drawer-handle{
+  display:none;
+}
+
+@media(max-width:900px){
+  html,
+  body{
+    height:100%;
+    height:100dvh;
+  }
+
+  .app{
+    height:100%;
+    height:100dvh;
+  }
+
+  .topbar{
+    grid-template-columns:minmax(0,1fr) auto auto;
+    grid-template-rows:auto auto;
+    gap:8px;
+    min-height:0;
+    padding:
+      max(8px,env(safe-area-inset-top))
+      10px
+      9px;
+  }
+
+  .brand{
+    min-width:0;
+    font-size:21px;
+    line-height:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .brand-ball{
+    width:18px;
+    height:18px;
+    flex:0 0 18px;
+  }
+
+  .topbar .input{
+    grid-column:1/-1;
+    grid-row:2;
+    min-height:43px;
+    font-size:16px;
+  }
+
+  .topbar > .select{
+    display:none;
+  }
+
+  .topbar > .button{
+    min-height:42px;
+    padding:0 13px;
+    white-space:nowrap;
+  }
+
+  .mobile-menu{
+    display:inline-flex!important;
+    align-items:center;
+    justify-content:center;
+    border-color:var(--lime);
+    color:var(--lime-soft);
+  }
+
+  .workspace{
+    position:relative;
+    grid-template-columns:1fr;
+    min-height:0;
+  }
+
+  .map-pane{
+    grid-column:1;
+    grid-row:1;
+  }
+
+  #map{
+    inset:0;
+  }
+
+  .sidebar{
+    position:absolute;
+    z-index:1200;
+    top:8px;
+    bottom:8px;
+    left:8px;
+    width:min(390px,calc(100vw - 16px));
+    max-width:none;
+    border:1px solid #4d4943;
+    border-radius:18px;
+    overflow:hidden;
+    transform:translateX(calc(-100% - 18px));
+    transition:
+      transform .22s ease,
+      visibility .22s ease;
+    visibility:hidden;
+    box-shadow:0 24px 70px rgba(0,0,0,.54);
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+    visibility:visible;
+  }
+
+  .mobile-backdrop{
+    position:absolute;
+    z-index:1150;
+    inset:0;
+    display:block;
+    width:100%;
+    height:100%;
+    padding:0;
+    border:0;
+    background:rgba(8,8,7,.55);
+    backdrop-filter:blur(2px);
+  }
+
+  .mobile-sheet-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:13px 13px 11px;
+    border-bottom:1px solid #45413c;
+    background:#25231f;
+  }
+
+  .mobile-sheet-kicker{
+    color:var(--lime);
+    font-family:var(--display);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+  }
+
+  .mobile-sheet-title{
+    margin-top:2px;
+    font-family:var(--display);
+    font-size:24px;
+    font-weight:700;
+    line-height:.95;
+  }
+
+  .mobile-sheet-close{
+    min-width:64px;
+    min-height:40px;
+    border:1px solid #5b5750;
+    border-radius:999px;
+    background:#302d2a;
+    color:#eeeae5;
+    font-family:var(--ui);
+    font-size:10px;
+    font-weight:750;
+  }
+
+  .mobile-area-field{
+    display:grid;
+    gap:5px;
+  }
+
+  .mobile-area-field > span{
+    color:#8d8880;
+    font-family:var(--display);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+  }
+
+  .filters{
+    gap:9px;
+    padding:11px;
+  }
+
+  .category-row{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+
+  .category-toggle{
+    min-width:0;
+    min-height:42px;
+    padding:0 7px;
+    font-size:9px;
+    white-space:nowrap;
+  }
+
+  .category-dot{
+    margin-right:4px;
+  }
+
+  .filter-grid{
+    gap:7px;
+  }
+
+  .select,
+  .button{
+    min-height:44px;
+  }
+
+  .select{
+    min-width:0;
+    padding:0 10px;
+    font-size:14px;
+  }
+
+  .near-row{
+    grid-template-columns:minmax(0,1fr) 105px;
+    gap:7px;
+  }
+
+  .status{
+    padding:9px 11px;
+    font-size:9px;
+  }
+
+  .list{
+    padding:
+      9px
+      9px
+      max(14px,env(safe-area-inset-bottom));
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .card{
+    margin-bottom:9px;
+    padding:12px;
+    border-radius:14px;
+  }
+
+  .card h2{
+    font-size:21px;
+    line-height:1;
+  }
+
+  .card-address{
+    font-size:11px;
+  }
+
+  .tag{
+    min-height:25px;
+    display:inline-flex;
+    align-items:center;
+    padding:4px 8px;
+    font-size:8px;
+  }
+
+  .card-actions{
+    gap:7px;
+  }
+
+  .card-actions button,
+  .card-actions a{
+    min-height:44px;
+    font-size:10px;
+  }
+
+  .drawer{
+    top:auto;
+    right:0;
+    bottom:0;
+    left:0;
+    width:auto;
+    height:min(66dvh,620px);
+    border-top:1px solid #55514a;
+    border-left:0;
+    border-radius:20px 20px 0 0;
+    box-shadow:0 -18px 48px rgba(0,0,0,.44);
+    overscroll-behavior:contain;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+
+  .map-pane.drawer-open #map{
+    right:0;
+    bottom:min(66dvh,620px);
+  }
+
+  .drawer-handle{
+    position:sticky;
+    top:0;
+    z-index:9;
+    display:block;
+    width:42px;
+    height:5px;
+    margin:8px auto -4px;
+    border-radius:999px;
+    background:#6b665f;
+  }
+
+  .drawer-close{
+    top:10px;
+    min-width:62px;
+    min-height:38px;
+    margin:5px 10px -43px 0;
+    font-size:9px;
+  }
+
+  .facility-photo{
+    height:145px;
+  }
+
+  .facility-title{
+    left:15px;
+    right:82px;
+    bottom:14px;
+    font-size:28px;
+  }
+
+  .drawer-body{
+    gap:9px;
+    padding:
+      11px
+      11px
+      max(16px,env(safe-area-inset-bottom));
+  }
+
+  .fact-grid{
+    gap:6px;
+  }
+
+  .fact{
+    padding:9px 5px;
+  }
+
+  .fact strong{
+    min-height:2.2em;
+    font-size:9px;
+  }
+
+  .primary-actions a,
+  .primary-actions button{
+    min-height:46px;
+    font-size:10px;
+  }
+
+  .weather-controls{
+    grid-template-columns:1fr;
+  }
+
+  .weather-controls select{
+    min-height:44px;
+    font-size:14px;
+  }
+
+  .weather-hero{
+    padding:10px;
+  }
+
+  .weather-temp{
+    font-size:42px;
+  }
+
+  .weather-metrics{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .weather-metric{
+    padding:8px 4px;
+  }
+
+  .weather-metric strong{
+    font-size:9px;
+  }
+
+  .day-summary{
+    grid-template-columns:1fr;
+  }
+
+  .activity-link{
+    min-height:45px;
+  }
+
+  .leaflet-control-zoom a{
+    width:42px!important;
+    height:42px!important;
+    line-height:42px!important;
+    font-size:22px!important;
+  }
+
+  .leaflet-top.leaflet-left{
+    top:7px;
+    left:7px;
+  }
+
+  .toast{
+    left:10px;
+    right:10px;
+    bottom:
+      max(10px,env(safe-area-inset-bottom));
+    max-width:none;
+    font-size:10px;
+  }
+
+  body.mobile-sheet-open{
+    overflow:hidden;
+  }
+}
+
+@media(max-width:560px){
+  :root{
+    --mobile-header-height:108px;
+  }
+
+  .topbar{
+    grid-template-columns:minmax(0,1fr) auto auto;
+  }
+
+  .brand{
+    font-size:19px;
+  }
+
+  .topbar > .button{
+    min-width:0;
+    padding:0 10px;
+    font-size:10px;
+  }
+
+  .sidebar{
+    inset:
+      5px
+      5px
+      max(5px,env(safe-area-inset-bottom))
+      5px;
+    width:auto;
+    border-radius:16px;
+  }
+
+  .category-toggle{
+    font-size:8px;
+  }
+
+  .filter-grid{
+    grid-template-columns:1fr;
+  }
+
+  .near-row{
+    grid-template-columns:1fr 96px;
+  }
+
+  .status{
+    flex-wrap:wrap;
+  }
+
+  .card-actions{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .card-actions .show-map{
+    grid-column:1/-1;
+  }
+
+  .drawer{
+    height:min(72dvh,680px);
+  }
+
+  .map-pane.drawer-open #map{
+    bottom:min(72dvh,680px);
+  }
+
+  .facility-photo{
+    height:125px;
+  }
+
+  .facility-title{
+    font-size:25px;
+  }
+
+  .fact-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .primary-actions{
+    grid-template-columns:1fr;
+  }
+
+  .primary-actions .show-map-main{
+    grid-column:1;
+  }
+
+  .weather-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .launch{
+    padding:
+      max(12px,env(safe-area-inset-top))
+      12px
+      max(12px,env(safe-area-inset-bottom));
+  }
+
+  .launch-card{
+    border-radius:17px;
+  }
+
+  .launch-copy{
+    padding:15px 16px 17px;
+  }
+
+  .launch h1{
+    font-size:30px;
+  }
+
+  .launch p{
+    font-size:12px;
+  }
+}
+
+@media(max-width:390px){
+  .brand{
+    font-size:17px;
+  }
+
+  .brand-ball{
+    width:16px;
+    height:16px;
+    flex-basis:16px;
+  }
+
+  .topbar > .button{
+    padding:0 8px;
+    font-size:9px;
+  }
+
+  .category-row{
+    grid-template-columns:1fr;
+  }
+
+  .category-toggle{
+    justify-content:flex-start;
+    padding-left:12px;
+  }
+
+  .near-row{
+    grid-template-columns:1fr;
+  }
+
+  .fact-grid{
+    grid-template-columns:1fr;
+  }
+
+  .fact strong{
+    min-height:auto;
+  }
+}
+
+
+/* Build 17 — close map focus */
+#map .leaflet-tile-pane{
+  filter:saturate(1.08) contrast(1.06) brightness(1.02);
+}
+.map-focus-ring{
+  pointer-events:none;
+}
+.map-focus-ring::before,
+.map-focus-ring::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:2px solid var(--lime);
+  border-radius:50%;
+  animation:mapFocusPulse 1.35s ease-out forwards;
+}
+.map-focus-ring::after{
+  animation-delay:.18s;
+}
+@keyframes mapFocusPulse{
+  0%{
+    opacity:.95;
+    transform:scale(.35);
+  }
+  100%{
+    opacity:0;
+    transform:scale(2.8);
+  }
+}
+.map-focus-label{
+  padding:6px 9px;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;
+  background:rgba(28,27,24,.92);
+  color:#f2efe9;
+  font-family:var(--ui);
+  font-size:9px;
+  font-weight:750;
+  white-space:nowrap;
+  box-shadow:0 5px 18px rgba(0,0,0,.32);
+}
+@media(max-width:900px){
+  .map-focus-label{
+    font-size:10px;
+    padding:7px 10px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -839,7 +1445,7 @@ select,
   <section class="launch-card">
     <div id="launchSlides" class="launch-slides"></div>
     <div class="launch-copy">
-      <div class="launch-kicker">LA court map · Build 15</div>
+      <div class="launch-kicker">LA court map · Build 17</div>
       <h1>Finding tennis courts</h1>
       <p>Mapping public courts, open-play facilities, and clubs across Los Angeles while local court details become available.</p>
       <div class="launch-track"><div id="launchFill" class="launch-fill"></div></div>
@@ -857,12 +1463,34 @@ select,
     <input id="search" class="input" type="search" placeholder="Search court, park, city, or address">
     <select id="city" class="select"><option value="">All areas</option></select>
     <button id="locate" class="button" type="button">Locate me</button>
-    <button id="mobileMenu" class="button mobile-menu" type="button" hidden>Courts</button>
+    <button id="mobileMenu" class="button mobile-menu" type="button" hidden aria-controls="sidebar" aria-expanded="false">Courts</button>
   </header>
 
   <main class="workspace">
-    <aside id="sidebar" class="sidebar">
+    <button
+      id="mobileBackdrop"
+      class="mobile-backdrop"
+      type="button"
+      aria-label="Close court list"
+      hidden
+    ></button>
+
+    <aside id="sidebar" class="sidebar" aria-label="Court filters and results">
+      <div class="mobile-sheet-header">
+        <div>
+          <div class="mobile-sheet-kicker">Court finder</div>
+          <div class="mobile-sheet-title">Browse courts</div>
+        </div>
+        <button id="mobileSidebarClose" class="mobile-sheet-close" type="button">Close</button>
+      </div>
       <section class="filters">
+        <label class="mobile-area-field">
+          <span>Area</span>
+          <select id="cityMobile" class="select">
+            <option value="">All areas</option>
+          </select>
+        </label>
+
         <div class="category-row">
           <button class="category-toggle" data-category="pay" aria-pressed="true"><span class="category-dot" style="background:var(--pay)"></span>Pay courts</button>
           <button class="category-toggle" data-category="open" aria-pressed="true"><span class="category-dot" style="background:var(--open)"></span>Open play</button>
@@ -904,7 +1532,8 @@ select,
 
     <section id="mapPane" class="map-pane">
       <div id="map"></div>
-      <aside id="drawer" class="drawer" hidden>
+      <aside id="drawer" class="drawer" hidden aria-label="Facility details">
+        <div class="drawer-handle" aria-hidden="true"></div>
         <button id="drawerClose" class="drawer-close" type="button">Close</button>
         <div id="drawerContent"></div>
       </aside>
@@ -1412,7 +2041,9 @@ function categoryClusterIcon(category,cluster){
 function createMap(){
   map=L.map("map",{
     preferCanvas:true,
-    zoomControl:true
+    zoomControl:true,
+    zoomSnap:.5,
+    zoomDelta:.5
   }).setView(
     [34.0522,-118.2437],
     10
@@ -1427,6 +2058,10 @@ function createMap(){
       attribution:"Tiles &copy; Esri"
     }
   ).addTo(map);
+
+  map.on("click",()=>{
+    closeMobileSidebar();
+  });
 
   for(const category of [
     "pay",
@@ -1465,7 +2100,10 @@ function markerFor(c){
       riseOnHover:true
     }
   );
-  marker.on("click",()=>openDrawer(c));
+  marker.on("click",()=>{
+    clearMapFocusEffect();
+    openDrawer(c);
+  });
   markers.set(c.id,marker);
   return marker;
 }
@@ -1585,6 +2223,7 @@ function renderList(filtered){
       button.disabled=false;
       button.textContent=original;
       if(!located)return;
+      closeMobileSidebar();
       if(window.innerWidth<=760){
         document.getElementById("sidebar").classList.remove("open");
       }
@@ -1618,14 +2257,14 @@ async function revealCourt(c){
   }
 
   renderAll();
-  return focusCourtMarker(c,true);
+  return focusCourtMarker(c,false);
 }
 
 /* Drawer and satellite preview */
 function facilityPreviewUrl(c){
   if(!hasPoint(c))return "";
-  const radiusX=255;
-  const radiusY=145;
+  const radiusX=175;
+  const radiusY=100;
   const point=projectWebMercator(Number(c.lat),Number(c.lng));
   return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?"+
     new URLSearchParams({
@@ -1637,7 +2276,7 @@ function facilityPreviewUrl(c){
       ].join(","),
       bboxSR:"3857",
       imageSR:"3857",
-      size:"760,430",
+      size:"1000,570",
       format:"jpg",
       transparent:"false",
       f:"image"
@@ -1720,6 +2359,64 @@ function drawerPadding(){
     ?{paddingTopLeft:[28,28],paddingBottomRight:[28,Math.min(540,window.innerHeight*.6)]}
     :{paddingTopLeft:[32,32],paddingBottomRight:[390,32]};
 }
+let activeFocusLayer=null;
+let activeFocusTooltip=null;
+let focusCleanupTimer=null;
+
+function clearMapFocusEffect(){
+  clearTimeout(focusCleanupTimer);
+
+  if(activeFocusLayer){
+    try{
+      map.removeLayer(activeFocusLayer);
+    }catch(_){}
+    activeFocusLayer=null;
+  }
+
+  if(activeFocusTooltip){
+    try{
+      map.removeLayer(activeFocusTooltip);
+    }catch(_){}
+    activeFocusTooltip=null;
+  }
+}
+function showMapFocusEffect(c,latlng){
+  clearMapFocusEffect();
+
+  activeFocusLayer=L.marker(
+    latlng,
+    {
+      interactive:false,
+      keyboard:false,
+      icon:L.divIcon({
+        className:"map-focus-ring",
+        html:"",
+        iconSize:[34,34],
+        iconAnchor:[17,17]
+      })
+    }
+  ).addTo(map);
+
+  activeFocusTooltip=L.marker(
+    latlng,
+    {
+      interactive:false,
+      keyboard:false,
+      zIndexOffset:1200,
+      icon:L.divIcon({
+        className:"",
+        html:`<div class="map-focus-label">${esc(c.name)}</div>`,
+        iconSize:null,
+        iconAnchor:[-14,50]
+      })
+    }
+  ).addTo(map);
+
+  focusCleanupTimer=window.setTimeout(
+    clearMapFocusEffect,
+    1900
+  );
+}
 function verifiedLatLng(c){
   if(!hasPoint(c))return null;
   const lat=Number(c.lat);
@@ -1727,7 +2424,7 @@ function verifiedLatLng(c){
   if(!validCourtPoint(lat,lng))return null;
   return L.latLng(lat,lng);
 }
-function focusCourtMarker(c,openDetails=true){
+function focusCourtMarker(c,openDetails=false){
   const latlng=verifiedLatLng(c);
   if(!latlng){
     showToast(
@@ -1740,19 +2437,43 @@ function focusCourtMarker(c,openDetails=true){
   if(!marker)return false;
 
   const reveal=()=>{
-    map.setView(latlng,17,{animate:false});
-    if(openDetails){
-      openDrawer(c);
+    if(!openDetails){
+      closeDrawer();
+      closeMobileSidebar();
     }
+
+    map.invalidateSize({pan:false});
+
+    const targetZoom=
+      window.innerWidth<=560
+        ?18
+        :18.5;
+
+    map.flyTo(
+      latlng,
+      targetZoom,
+      {
+        animate:true,
+        duration:.55
+      }
+    );
+
     window.setTimeout(()=>{
-      map.panInside(
-        latlng,
-        {
-          ...drawerPadding(),
-          animate:true
-        }
-      );
-    },240);
+      showMapFocusEffect(c,latlng);
+
+      if(openDetails){
+        openDrawer(c);
+      }else{
+        map.panInside(
+          latlng,
+          {
+            paddingTopLeft:[46,54],
+            paddingBottomRight:[46,70],
+            animate:true
+          }
+        );
+      }
+    },580);
   };
 
   const group=clusters[c.category];
@@ -1767,6 +2488,7 @@ function focusCourtMarker(c,openDetails=true){
   }else{
     reveal();
   }
+
   return true;
 }
 function openDrawer(c){
@@ -2075,12 +2797,22 @@ async function loadWeather(c){
 
 /* Location and controls */
 function populateCities(){
-  const cities=[...new Set(COURTS.map(c=>c.city).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b));
-  const select=document.getElementById("city");
-  select.innerHTML='<option value="">All areas</option>'+
-    cities.map(city=>`<option value="${esc(city)}">${esc(city)}</option>`).join("");
+  const cities=[
+    ...new Set(
+      COURTS.map(c=>c.city).filter(Boolean)
+    )
+  ].sort((a,b)=>a.localeCompare(b));
+
+  const options=
+    '<option value="">All areas</option>'+
+    cities.map(city=>
+      `<option value="${esc(city)}">${esc(city)}</option>`
+    ).join("");
+
+  document.getElementById("city").innerHTML=options;
+  document.getElementById("cityMobile").innerHTML=options;
 }
+
 function getLocation(){
   return new Promise((resolve,reject)=>{
     if(!navigator.geolocation){
@@ -2132,6 +2864,7 @@ async function findNearby(){
     if(points.length){
       map.fitBounds(points,{padding:[35,35],maxZoom:13});
     }
+    closeMobileSidebar();
   }catch(_){
     showToast("Your location could not be retrieved.");
   }finally{
@@ -2139,9 +2872,58 @@ async function findNearby(){
     button.textContent=original;
   }
 }
+function isMobileLayout(){
+  return window.matchMedia(
+    "(max-width:900px)"
+  ).matches;
+}
+function setMobileSidebar(open){
+  const sidebar=document.getElementById("sidebar");
+  const backdrop=document.getElementById("mobileBackdrop");
+  const menu=document.getElementById("mobileMenu");
+
+  sidebar.classList.toggle("open",open);
+  backdrop.hidden=!open;
+  menu.setAttribute(
+    "aria-expanded",
+    String(open)
+  );
+  document.body.classList.toggle(
+    "mobile-sheet-open",
+    open
+  );
+
+  if(open){
+    window.setTimeout(()=>{
+      document.getElementById("search")?.focus({
+        preventScroll:true
+      });
+    },220);
+  }
+}
+function closeMobileSidebar(){
+  if(isMobileLayout()){
+    setMobileSidebar(false);
+  }
+}
+function syncCitySelects(source){
+  const city=document.getElementById("city");
+  const mobile=document.getElementById("cityMobile");
+  const value=source.value;
+
+  if(city.value!==value)city.value=value;
+  if(mobile.value!==value)mobile.value=value;
+}
 function wireControls(){
   document.getElementById("search").addEventListener("input",renderAll);
-  document.getElementById("city").addEventListener("change",renderAll);
+  document.getElementById("city").addEventListener("change",event=>{
+    syncCitySelects(event.target);
+    renderAll();
+  });
+  document.getElementById("cityMobile").addEventListener("change",event=>{
+    syncCitySelects(event.target);
+    renderAll();
+  });
   document.getElementById("lights").addEventListener("change",renderAll);
   document.getElementById("sort").addEventListener("change",renderAll);
   document.getElementById("locate").addEventListener("click",locateMe);
@@ -2151,8 +2933,17 @@ function wireControls(){
   });
   document.getElementById("drawerClose").addEventListener("click",closeDrawer);
   document.getElementById("mobileMenu").addEventListener("click",()=>{
-    document.getElementById("sidebar").classList.toggle("open");
+    const open=!document.getElementById("sidebar").classList.contains("open");
+    setMobileSidebar(open);
   });
+  document.getElementById("mobileSidebarClose").addEventListener(
+    "click",
+    ()=>setMobileSidebar(false)
+  );
+  document.getElementById("mobileBackdrop").addEventListener(
+    "click",
+    ()=>setMobileSidebar(false)
+  );
   document.querySelectorAll(".category-toggle").forEach(button=>{
     button.addEventListener("click",()=>{
       const category=button.dataset.category;
@@ -2169,8 +2960,28 @@ function wireControls(){
     });
   });
   window.addEventListener("resize",()=>{
+    if(!isMobileLayout()){
+      setMobileSidebar(false);
+    }
     if(selectedCourt){
       setTimeout(()=>map.invalidateSize({pan:false}),80);
+    }
+  });
+
+  document.addEventListener("keydown",event=>{
+    if(event.key!=="Escape")return;
+
+    if(
+      !document.getElementById("drawer").hidden
+    ){
+      closeDrawer();
+      return;
+    }
+
+    if(
+      document.getElementById("sidebar").classList.contains("open")
+    ){
+      setMobileSidebar(false);
     }
   });
 }
@@ -2201,6 +3012,9 @@ async function init(){
   clearBrokenBuild14Cache();
   hydrateSavedCoordinates();
   populateCities();
+  syncCitySelects(
+    document.getElementById("city")
+  );
   createMap();
   wireControls();
   renderAll();

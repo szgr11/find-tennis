@@ -1,39 +1,33 @@
-# LA Tennis Court Finder — Build 15 category clusters
+# LA Tennis Court Finder — Build 17 map focus
 
-Build 15 restores the earlier orange, blue, and purple marker-cluster map.
+Build 17 restores **Show on map** as a close, clear map-view action.
 
-## Critical mapping fix
+## Show on map
 
-The previous build converted blank latitude and longitude strings to numeric
-zero and therefore reported every facility as mapped. Build 15 treats blank
-coordinates as missing. The map begins with the ten verified facilities and
-then adds resolved facilities progressively.
+Selecting **Show on map** from either the court list or facility drawer now:
 
-The detector-era coordinate mapper has been restored:
+1. closes the court-list sheet;
+2. closes the facility drawer;
+3. expands the map to its full available area;
+4. zooms directly to the facility at zoom 18 on small phones and 18.5 on
+   larger screens;
+5. briefly highlights the selected pin and displays the facility name.
 
-- two background workers;
-- exact address lookup followed by facility-name fallback;
-- Southern California coordinate validation;
-- session and persistent cache support;
-- priority lookup when **Show on map** is selected;
-- markers appear without reloading.
+Clicking the colored map pin still opens the complete facility-details drawer.
 
-Only the broken Build 14 cache namespace is removed. Earlier valid coordinate
-caches are preserved.
+## Clearer imagery
 
-## Map colors
+- Satellite imagery receives a subtle contrast and saturation enhancement.
+- The map supports half-step zoom levels.
+- The facility photo uses a closer geographic crop and a 1000 × 570 export.
 
-- Orange: pay courts
-- Blue: open play
-- Purple: clubs
+## Preserved behavior
 
-Each category has its own colored cluster layer.
-
-## Typography
-
-- Barlow Condensed: athletic headings
-- Manrope: controls, data, buttons, addresses, and list content
-- Source Serif 4: limited to loading and descriptive narrative text
+- Desktop layout remains unchanged.
+- Mobile court-list and facility bottom sheets remain available.
+- Orange, blue, and purple category clusters remain intact.
+- Weather planner and Google Maps activity link remain intact.
+- Background facility mapping remains intact.
 
 ## Deploy
 
@@ -45,4 +39,4 @@ Replace the repository root with:
 - `.nojekyll`
 - `README.md`
 
-Confirm the launch screen says `Build 15`.
+Confirm the loading screen says `Build 17`.
