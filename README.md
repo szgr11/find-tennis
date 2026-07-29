@@ -1,32 +1,38 @@
-# LA Tennis Court Finder — Build 11 immediate exit
+# LA Tennis Court Finder — Build 12
 
-This build removes the launch finalization screen from the execution path.
+This is a clean static GitHub Pages court finder. Court detection, calibration,
+layout recognition, detector progress bars, and manual tuning have been
+removed.
 
-After the fifth calibration location:
+## Main features
 
-1. Court detection is enabled synchronously.
-2. The launch overlay is hidden synchronously.
-3. The main map is rendered immediately.
-4. Satellite descriptor extraction continues in the background.
-5. Calibration-map cleanup happens only after the site is visible.
+- Dark tennis-themed interface
+- Full-color Esri satellite map
+- Background address mapping for all 165 facilities
+- Search, area, category, lighting, court-count, distance, and nearby filters
+- Facility side drawer that preserves map space
+- Prominent Directions and Court information buttons
+- Seven-day hourly weather planner using Open-Meteo
+- Temperature, apparent temperature, rain chance, precipitation, wind, gusts,
+  humidity, UV, cloud cover, visibility, sunrise, sunset, and suggested playing
+  windows
+- Short Finding tennis courts launch slideshow
+- Google Maps link for live or typical activity when Google displays it
 
-There is no awaited promise, progress loop, animation, or network request
-between the fifth click and opening the main map.
+## Google activity limitation
 
-## Confirming the deployed version
-
-The launch screen says:
-
-```text
-Detector setup · Build 11
-```
-
-An older screen without `Build 11`, or one that says
-`Applying your court pins`, is a cached or older deployment.
+Google Maps Platform's official Place data fields do not expose Popular Times
+or live busyness. This build therefore links directly to the court in Google
+Maps, where Google may display live and typical activity. It does not scrape
+or invent activity data.
 
 ## Deploy
 
-Delete or overwrite the existing repository files, upload every file from this
-folder to the repository root, and commit to `main`.
+Upload every file and the `assets` folder to the repository root and commit to
+`main`.
 
-GitHub Pages should publish from `main` and `/ (root)`.
+GitHub Pages:
+
+- Source: Deploy from a branch
+- Branch: main
+- Folder: / (root)
